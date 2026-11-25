@@ -118,6 +118,8 @@ docker/alertmanager/     # alertmanager.yml (notification email via Mailpit)
 scripts/dev.ps1          # Démarrage dev Windows (conteneurs + build Release + 2 fenêtres)
 docker-compose.yml       # Pile complète : db, backup, keycloak, mailpit, api, web,
                          # jaeger (traces), prometheus + alertmanager (alerting)
+Skills.md                # Inventaire des compétences pratiquées (référence
+                         # réutilisable pour de futurs projets)
 ```
 
 ## 3. Pile technique et architecture d'exécution
@@ -284,7 +286,30 @@ compris dans Blazor Server.
   le texte latin en arabe.
 - Le client HTTP transmet manuellement `Accept-Language` à l'API.
 
-## 9. Points de vigilance pour un agent
+## 9. Workflow Git (obligatoire pour tout agent)
+
+Adopté après coup (le projet a historiquement été développé sur `main`) :
+
+- **`main` est protégée** : jamais de commit direct. Elle reste toujours verte
+  (build + tests) et déployable.
+- **Une branche courte par feature**, créée depuis `main` à jour :
+  `feature/backend-<nom>` (API, infra, données), `feature/frontend-<nom>`
+  (Web, UI, composants), `feature/<nom>` sans préfixe pour le full-stack.
+  Pas de branches permanentes par agent : deux branches longues divergent et
+  finissent en conflits — l'identité de l'agent vit dans le nom de branche et
+  la PR.
+- **Une feature full-stack = une seule branche, une seule PR.** Une feature
+  est atomique : si l'API et le Web doivent changer ensemble pour rester
+  verts, ils changent dans la même PR (sinon `main` passe au rouge entre les
+  deux merges).
+- **PR obligatoire vers `main`** : l'agent crée la PR (`gh pr create`), la
+  décrit (quoi, pourquoi, vérifications), puis **demande la validation au
+  propriétaire dans la conversation**. Jamais de merge sans accord explicite.
+  Après merge : suppression de la branche (`gh pr merge --delete-branch`).
+- Le message de commit suit le style du dépôt : français, première ligne
+  résumée, corps en puces (quoi + preuves : scores de tests).
+
+## 10. Points de vigilance pour un agent
 
 - **Ne pas inventer de fonctionnalité** : le projet suit le cours PDF puis les
   phases documentées dans `docs/`. Vérifier `docs/` avant d'ajouter quoi que
