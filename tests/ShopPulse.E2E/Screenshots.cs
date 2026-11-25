@@ -4,6 +4,7 @@ namespace ShopPulse.E2E;
 
 /// <summary>Capture d'écran des pages refondues (vérification visuelle manuelle, phase design).
 /// À exécuter ponctuellement : dotnet test --filter Screenshots</summary>
+[Collection("e2e")]
 public class Screenshots : IAsyncLifetime
 {
        private static readonly string WebUrl =

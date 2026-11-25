@@ -84,6 +84,10 @@ else
               </section>
        }
 
+       @* Avis clients : îlot interactif (formulaire de soumission) — la liste est
+          chargée dès le prerender, donc présente dans le HTML statique. *@
+       <ProductReviewsSection ProductId="Id" @rendermode="InteractiveServer" />
+
        @if (_related.Count > 0)
        {
               <section class="home-section" aria-labelledby="related-title">
@@ -92,7 +96,8 @@ else
                             @foreach (var r in _related)
                             {
                                    <ProductCard @key="r.Id" ImageUrl="@r.ImageUrl" Name="@r.Name"
-                                                       Price="@r.Price" OldPrice="@r.OldPrice" Stock="@r.Stock">
+                                                       Price="@r.Price" OldPrice="@r.OldPrice" Stock="@r.Stock"
+                                                       AverageRating="@r.AverageRating" ReviewCount="@r.ReviewCount">
                                           <a href="/product/@r.Id">Voir</a>
                                    </ProductCard>
                             }

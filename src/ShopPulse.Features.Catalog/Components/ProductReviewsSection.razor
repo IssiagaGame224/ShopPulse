@@ -1,0 +1,162 @@
+@* Îlot interactif de la fiche produit : agrégat + liste des avis (chargés au
+   prerender, donc présents dans le HTML statique) et formulaire de soumission
+   pour les clients connectés. Un second envoi remplace l'avis existant (upsert
+   côté API). La page hôte (ProductDetail) reste en français comme le reste du
+   catalogue — voir la Limite i18n dans docs/28. *@
+@inject IReviewService Reviews
+@inject AuthenticationStateProvider AuthProvider
+@inject ILiveAnnouncer Announcer
+
+<section class="reviews" aria-labelledby="reviews-title">
+       <h2 id="reviews-title">Avis clients</h2>
+
+       @if (_data is null)
+       {
+              <p><em>Chargement des avis…</em></p>
+       }
+       else
+       {
+              <p class="reviews-summary">
+                     @if (_data.Rating.Count > 0)
+                     {
+                            <span class="stars" aria-hidden="true">@Stars(_data.Rating.Average)</span>
+                            <strong>@_data.Rating.Average.ToString("0.0")/5</strong>
+                            <span>(@_data.Rating.Count avis)</span>
+                     }
+                     else
+                     {
+                            <span>Aucun avis pour le moment — soyez le premier à donner votre avis.</span>
+                     }
+              </p>
+
+              @if (_isAuthenticated)
+              {
+                     <form class="review-form" @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+                            <fieldset>
+                                   <legend>@(_ownReview is null ? "Votre avis" : "Modifier votre avis")</legend>
+                                   <div class="review-rating" role="radiogroup" aria-label="Note sur 5">
+                                          @for (var i = 1; i <= 5; i++)
+                                          {
+                                                 var value = i;
+                                                 <label>
+                                                        <input type="radio" name="rating" value="@value"
+                                                               checked="@(_rating == value)"
+                                                               @onchange="() => _rating = value" />
+                                                        <span aria-hidden="true">@(value <= _rating ? "★" : "☆")</span>
+                                                        <span class="visually-hidden">@value étoile@(value > 1 ? "s" : "") sur 5</span>
+                                                 </label>
+                                          }
+                                   </div>
+                                   <label for="review-comment">Votre commentaire</label>
+                                   <textarea id="review-comment" @bind="_comment" maxlength="1000" rows="4"
+                                             placeholder="Qu'avez-vous pensé de ce produit ?"></textarea>
+                                   @if (_error is not null)
+                                   {
+                                          <p role="alert" class="review-error">@_error</p>
+                                   }
+                                   <button type="submit" class="sp-btn sp-btn--primary" disabled="@_submitting">
+                                          @(_submitting ? "Envoi…" : "Publier mon avis")
+                                   </button>
+                            </fieldset>
+                     </form>
+              }
+              else
+              {
+                     <p><a href="/account">Connectez-vous</a> pour laisser un avis.</p>
+              }
+
+              @if (_data.Reviews.Count > 0)
+              {
+                     <ul class="review-list">
+                            @foreach (var review in _data.Reviews)
+                            {
+                                   <li @key="review.Id">
+                                          <p class="review-meta">
+                                                 <span class="stars" aria-label="Note : @review.Rating sur 5">@Stars(review.Rating)</span>
+                                                 <strong>@review.AuthorName</strong>
+                                                 <span>— @review.CreatedAt.ToString("d")</span>
+                                                 @if (review.AuthorName == _userName)
+                                                 {
+                                                        <span class="review-own">(votre avis)</span>
+                                                 }
+                                          </p>
+                                          <p>@review.Comment</p>
+                                   </li>
+                            }
+                     </ul>
+              }
+       }
+</section>
+
+@code {
+       [Parameter, EditorRequired] public int ProductId { get; set; }
+
+       private ProductReviews? _data;
+       private bool _isAuthenticated;
+       private string? _userName;
+       private int _rating = 5;
+       private string _comment = "";
+       private bool _submitting;
+       private string? _error;
+       private Review? _ownReview;
+
+       protected override async Task OnInitializedAsync()
+       {
+              var auth = await AuthProvider.GetAuthenticationStateAsync();
+              _isAuthenticated = auth.User.Identity?.IsAuthenticated == true;
+              _userName = auth.User.FindFirst("preferred_username")?.Value
+                     ?? auth.User.Identity?.Name;
+
+              await LoadAsync();
+              _ownReview = _data?.Reviews.FirstOrDefault(r => r.AuthorName == _userName);
+              if (_ownReview is not null)
+              {
+                     _rating = _ownReview.Rating;
+                     _comment = _ownReview.Comment;
+              }
+       }
+
+       private async Task LoadAsync() => _data = await Reviews.GetForProductAsync(ProductId);
+
+       private async Task SubmitAsync()
+       {
+              if (_submitting) return;
+              _error = null;
+              if (string.IsNullOrWhiteSpace(_comment))
+              {
+                     _error = "Le commentaire est obligatoire.";
+                     return;
+              }
+              _submitting = true;
+              try
+              {
+                     switch (await Reviews.SubmitAsync(ProductId, _rating, _comment.Trim()))
+                     {
+                            case ReviewSubmitResult.Ok:
+                                   await LoadAsync();   // la liste et la moyenne reflètent l'avis
+                                   Announcer.Announce("Votre avis a été publié.");
+                                   break;
+                            case ReviewSubmitResult.Unauthorized:
+                                   _error = "Votre session a expiré — reconnectez-vous.";
+                                   break;
+                            case ReviewSubmitResult.Invalid invalid:
+                                   _error = invalid.Message;
+                                   break;
+                            case ReviewSubmitResult.Failed failed:
+                                   _error = failed.Message;
+                                   break;
+                     }
+              }
+              finally
+              {
+                     _submitting = false;
+              }
+       }
+
+       /// <summary>Étoiles pleines/vides pour une note (arrondie à l'entier le plus proche).</summary>
+       private static string Stars(double rating)
+       {
+              var full = (int)Math.Round(rating);
+              return new string('★', full) + new string('☆', 5 - full);
+       }
+}

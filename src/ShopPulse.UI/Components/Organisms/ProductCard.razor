@@ -12,6 +12,14 @@
               fetchpriority="@(Priority ? "high" : "auto")"
               decoding="async" />
        <h3>@Name</h3>
+       @if (ReviewCount > 0)
+       {
+              <p class="card-rating">
+                     <span class="stars" aria-hidden="true">@Stars</span>
+                     <span class="visually-hidden">Note moyenne : @AverageRating.ToString("0.0") sur 5,</span>
+                     @AverageRating.ToString("0.0") (@ReviewCount)
+              </p>
+       }
        <p class="price">
               @if (OldPrice is { } old && old > Price)
               {
@@ -36,9 +44,21 @@
        [Parameter, EditorRequired] public int Stock { get; set; }
        [Parameter] public decimal? OldPrice { get; set; }
        [Parameter] public bool Priority { get; set; }
+       [Parameter] public double AverageRating { get; set; }
+       [Parameter] public int ReviewCount { get; set; }
        [Parameter] public RenderFragment? ChildContent { get; set; }
 
        private bool InStock => Stock > 0;
+
+       /// <summary>Étoiles pleines/vides pour la note moyenne (arrondie à l'entier).</summary>
+       private string Stars
+       {
+              get
+              {
+                     var full = (int)Math.Round(AverageRating);
+                     return new string('★', full) + new string('☆', 5 - full);
+              }
+       }
 
        /// <summary>Pourcentage de remise arrondi, ou null si pas de promo réelle.</summary>
        private int? PromoPercent =>

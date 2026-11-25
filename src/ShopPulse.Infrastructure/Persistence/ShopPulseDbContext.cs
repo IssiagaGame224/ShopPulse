@@ -8,6 +8,7 @@ public class ShopPulseDbContext(DbContextOptions<ShopPulseDbContext> options) : 
        public DbSet<CategoryEntity> Categories => Set<CategoryEntity>();
        public DbSet<OrderEntity> Orders => Set<OrderEntity>();
        public DbSet<OutboxMessageEntity> Outbox => Set<OutboxMessageEntity>();
+       public DbSet<ReviewEntity> Reviews => Set<ReviewEntity>();
 
        protected override void OnModelCreating(ModelBuilder modelBuilder) =>
               modelBuilder.ApplyConfigurationsFromAssembly(typeof(ShopPulseDbContext).Assembly);

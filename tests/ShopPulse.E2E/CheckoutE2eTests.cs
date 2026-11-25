@@ -12,6 +12,7 @@ namespace ShopPulse.E2E;
 /// Exige les serveurs de dev : API (5299) + Web (5026) + Mailpit (8025).
 /// Nécessite les navigateurs Playwright : pwsh bin/Debug/net10.0/playwright.ps1 install chromium
 /// </summary>
+[Collection("e2e")]
 public class CheckoutE2eTests : IAsyncLifetime
 {
        private static readonly string WebUrl =

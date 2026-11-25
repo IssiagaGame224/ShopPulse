@@ -74,6 +74,7 @@ builder.Services.AddHybridCache();
 builder.Services.AddScoped<EfOrderService>();
 builder.Services.AddScoped<ShopPulse.Application.IOrderPlacer>(sp => sp.GetRequiredService<EfOrderService>());
 builder.Services.AddScoped<ShopPulse.Application.IOrderAdmin>(sp => sp.GetRequiredService<EfOrderService>());
+builder.Services.AddScoped<EfReviewService>();
 builder.Services.AddSingleton<ShopPulse.Application.IOrderEmailSender, SmtpOrderEmailSender>();
 // Paramètres commerciaux (livraison, TVA) : source unique lue par l'API et exposée au Web.
 builder.Services.AddSingleton<ShopPulse.Application.IStoreConfigProvider, StoreConfigProvider>();
@@ -219,6 +220,42 @@ api.MapGet("/products/{id:int}", async (int id, ShopPulse.Application.IProductSe
 })
 .WithName("GetProduct")
 .Produces<Product>(StatusCodes.Status200OK)
+.ProducesProblem(StatusCodes.Status404NotFound);
+
+// Avis clients (docs/28) : lecture publique — agrégat + avis récents du produit.
+api.MapGet("/products/{id:int}/reviews", async (int id, EfReviewService reviews, CancellationToken ct) =>
+{
+       var result = await reviews.GetForProductAsync(id, ct);
+       return result is null ? Results.NotFound() : Results.Ok(result);
+})
+.WithName("GetProductReviews")
+.Produces<ShopPulse.Domain.ProductReviews>(StatusCodes.Status200OK)
+.ProducesProblem(StatusCodes.Status404NotFound);
+
+// Soumission : réservée aux clients connectés. L'auteur est déduit du JETON
+// (sub + preferred_username) — jamais du corps de la requête. Un second envoi
+// REMPLACE l'avis existant (un avis par client et par produit, garanti aussi
+// par la contrainte d'unicité en base).
+api.MapPost("/products/{id:int}/reviews", async (int id, UpsertReviewRequest req, HttpContext ctx,
+       EfReviewService reviews, HybridCache cache, CancellationToken ct) =>
+{
+       var userId = ctx.User.FindFirst("sub")?.Value;
+       if (userId is null) return (IResult)Results.Unauthorized();
+       if (req.Rating is < 1 or > 5)
+              return Results.BadRequest(new { error = "La note doit être comprise entre 1 et 5." });
+       if (string.IsNullOrWhiteSpace(req.Comment) || req.Comment.Trim().Length > 1000)
+              return Results.BadRequest(new { error = "Le commentaire est obligatoire (1000 caractères maximum)." });
+
+       var author = ctx.User.FindFirst("preferred_username")?.Value ?? "client";
+       var review = await reviews.UpsertAsync(id, userId, author, req.Rating, req.Comment.Trim(), ct);
+       if (review is null) return Results.NotFound();
+       await cache.RemoveByTagAsync("catalog", ct);   // la moyenne affichée au catalogue change
+       return Results.Ok(review);
+})
+.WithName("UpsertProductReview")
+.RequireAuthorization()
+.Produces<ShopPulse.Domain.Review>(StatusCodes.Status200OK)
+.Produces(StatusCodes.Status400BadRequest)
 .ProducesProblem(StatusCodes.Status404NotFound);
 
 // Pagination, filtres et tri exécutés en SQL côté serveur : le client ne reçoit que sa page.
@@ -543,6 +580,23 @@ admin.MapPut("/products/{id:int}", async (int id, ShopPulse.Application.ProductU
 .WithName("AdminUpdateProduct")
 .Produces<Product>(StatusCodes.Status200OK)
 .ProducesValidationProblem();
+
+// Modération des avis (docs/28) : liste récente tous produits + suppression.
+admin.MapGet("/reviews", async (EfReviewService reviews, CancellationToken ct) =>
+       Results.Ok(await reviews.GetRecentAsync(ct: ct)))
+.WithName("AdminGetReviews")
+.Produces<IReadOnlyList<ShopPulse.Domain.AdminReview>>(StatusCodes.Status200OK);
+
+admin.MapDelete("/reviews/{id:int}", async (int id, EfReviewService reviews,
+       HybridCache cache, CancellationToken ct) =>
+{
+       if (!await reviews.DeleteAsync(id, ct)) return (IResult)Results.NotFound();
+       await cache.RemoveByTagAsync("catalog", ct);   // la moyenne affichée au catalogue change
+       return Results.NoContent();
+})
+.WithName("AdminDeleteReview")
+.Produces(StatusCodes.Status204NoContent)
+.ProducesProblem(StatusCodes.Status404NotFound);
 
 app.Run();
 

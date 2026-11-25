@@ -203,4 +203,25 @@
   <data name="PageXofY" xml:space="preserve">
     <value>Page {0} / {1}</value>
   </data>
+  <data name="AdminReviewsTitle" xml:space="preserve">
+    <value>Avis clients</value>
+  </data>
+  <data name="NoReviews" xml:space="preserve">
+    <value>Aucun avis pour le moment.</value>
+  </data>
+  <data name="ColProduct" xml:space="preserve">
+    <value>Produit</value>
+  </data>
+  <data name="ColAuthor" xml:space="preserve">
+    <value>Auteur</value>
+  </data>
+  <data name="ColRating" xml:space="preserve">
+    <value>Note</value>
+  </data>
+  <data name="ColComment" xml:space="preserve">
+    <value>Commentaire</value>
+  </data>
+  <data name="DeleteReview" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
 </root>

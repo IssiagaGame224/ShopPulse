@@ -206,4 +206,25 @@
   <data name="PageXofY" xml:space="preserve">
     <value>صفحة {0} / {1}</value>
   </data>
+  <data name="AdminReviewsTitle" xml:space="preserve">
+    <value>آراء العملاء</value>
+  </data>
+  <data name="NoReviews" xml:space="preserve">
+    <value>لا توجد آراء بعد.</value>
+  </data>
+  <data name="ColProduct" xml:space="preserve">
+    <value>المنتج</value>
+  </data>
+  <data name="ColAuthor" xml:space="preserve">
+    <value>الكاتب</value>
+  </data>
+  <data name="ColRating" xml:space="preserve">
+    <value>التقييم</value>
+  </data>
+  <data name="ColComment" xml:space="preserve">
+    <value>التعليق</value>
+  </data>
+  <data name="DeleteReview" xml:space="preserve">
+    <value>حذف</value>
+  </data>
 </root>

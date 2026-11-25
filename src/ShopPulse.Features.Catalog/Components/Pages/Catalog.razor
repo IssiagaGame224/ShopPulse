@@ -50,7 +50,8 @@ else
               @foreach (var (p, i) in _items.Select((p, i) => (p, i)))
               {
                      <ProductCard @key="p.Id" ImageUrl="@p.ImageUrl" Name="@p.Name"
-                                          Price="@p.Price" OldPrice="@p.OldPrice" Stock="@p.Stock" Priority="@(i < 4)">
+                                          Price="@p.Price" OldPrice="@p.OldPrice" Stock="@p.Stock" Priority="@(i < 4)"
+                                          AverageRating="@p.AverageRating" ReviewCount="@p.ReviewCount">
                             <a href="/product/@p.Id">Voir</a>
                      </ProductCard>
               }
