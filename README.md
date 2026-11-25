@@ -106,7 +106,7 @@ réseau sont idempotentes, les frontières sont vérifiées par des tests.
 | Paiement | Stripe.net (Payment Intents, webhooks signés) + simulateur dev |
 | Emails | MailKit + Mailpit (capture dev) |
 | Tests | xUnit, NetArchTest.Rules, Playwright, axe-core, Testcontainers (intégration API) |
-| Observabilité | Health checks `/health` (JSON détaillé), logs structurés Serilog |
+| Observabilité | Health checks `/health` + `/health/live`, logs structurés Serilog, Outbox (emails garantis), refresh token OIDC |
 | Infra | Docker Compose (5 services), Dockerfiles multi-étapes |
 
 ## Démarrage rapide

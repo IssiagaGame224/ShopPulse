@@ -101,7 +101,7 @@ builder.Services.AddAuthentication(o =>
                                    ? TimeSpan.FromSeconds(seconds)
                                    : TimeSpan.FromMinutes(25);
                             ctx.HttpContext.RequestServices.GetRequiredService<UserTokenStore>()
-                                   .Set(sub, accessToken, lifetime);
+                                   .Set(sub, accessToken, ctx.TokenEndpointResponse?.RefreshToken, lifetime);
                      }
                      return Task.CompletedTask;
               }
@@ -233,7 +233,11 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies([.. modules.Select(m => m.UiAssembly), typeof(ShopPulse.UI.Marker).Assembly]);
 
 // Module 7 — connexion / déconnexion. returnUrl validé : anti-redirection ouverte.
-// Sonde de santé : l'API doit répondre pour que le Web soit « Healthy ».
+// Sondes : /health/live = processus vivant ; /health = l'API répond (JSON détaillé).
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false,
+});
 app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
     ResponseWriter = WriteHealthJson,

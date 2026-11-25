@@ -51,9 +51,18 @@ public class AccountE2eTests : IAsyncLifetime
               await page.WaitForSelectorAsync($"a[href='/product/{ProductId}']");
               await page.ClickAsync($"a[href='/product/{ProductId}']");
               await page.WaitForSelectorAsync("button.sp-btn--primary");
-              await page.WaitForTimeoutAsync(1200);          // circuit SignalR
-              await page.ClickAsync("button.sp-btn--primary");
-              await page.WaitForTimeoutAsync(300);
+              // Clic pris en compte seulement une fois le circuit connecté : badge à 1, avec retry.
+              for (var attempt = 0; attempt < 4; attempt++)
+              {
+                     await page.ClickAsync("button.sp-btn--primary");
+                     try
+                     {
+                            await page.WaitForSelectorAsync(".cart-badge:has-text('1')",
+                                   new PageWaitForSelectorOptions { Timeout = 4000 });
+                            break;
+                     }
+                     catch (TimeoutException) when (attempt < 3) { }
+              }
               await page.ClickAsync("a[href='/cart']");
               await page.WaitForSelectorAsync("h1");
               await page.ClickAsync("nav a[href='checkout']");   // lien du menu (le panier a aussi un CTA)

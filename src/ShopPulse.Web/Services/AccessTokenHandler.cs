@@ -22,7 +22,7 @@ public sealed class AccessTokenHandler(
                      token = await http.GetTokenAsync("access_token");
 
               if (token is null && currentUser.Sub is { } sub)
-                     token = tokenStore.Get(sub);
+                     token = await tokenStore.GetValidTokenAsync(sub, cancellationToken);
 
               if (token is not null)
                      request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);

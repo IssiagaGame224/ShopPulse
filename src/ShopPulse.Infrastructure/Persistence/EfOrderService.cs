@@ -86,6 +86,15 @@ public class EfOrderService(ShopPulseDbContext db, EfProductService products,
               entity.Total = entity.Lines.Sum(l => l.LineTotal) + entity.ShippingCost;
 
               db.Orders.Add(entity);
+              // Outbox : l'email de confirmation est garanti par la MÊME transaction
+              // (le worker l'enverra de façon asynchrone — jamais perdu si le SMTP tousse).
+              db.Outbox.Add(new OutboxMessageEntity
+              {
+                     Id = Guid.CreateVersion7(),
+                     Type = OutboxTypes.OrderConfirmation,
+                     OrderId = entity.Id,
+                     CreatedAt = DateTimeOffset.UtcNow,
+              });
               try
               {
                      await db.SaveChangesAsync(ct);
@@ -172,15 +181,26 @@ public class EfOrderService(ShopPulseDbContext db, EfProductService products,
                                    updates.Add((line.ProductId, stock));
                      }
                      entity.Status = status;
+                     AddStatusOutbox(entity.Id);
                      await db.SaveChangesAsync(ct);
                      await tx.CommitAsync(ct);
                      return OrderWriteResult.Ok(entity.ToDomain(), updates);
               }
 
               entity.Status = status;
+              AddStatusOutbox(entity.Id);
               await db.SaveChangesAsync(ct);
               return OrderWriteResult.Ok(entity.ToDomain());
        }
+
+       private void AddStatusOutbox(Guid orderId) =>
+              db.Outbox.Add(new OutboxMessageEntity
+              {
+                     Id = Guid.CreateVersion7(),
+                     Type = OutboxTypes.OrderStatus,
+                     OrderId = orderId,
+                     CreatedAt = DateTimeOffset.UtcNow,
+              });
 
        /// <summary>Mémorise la référence du paiement (Stripe pi_… / fake_…) sur la commande.</summary>
        public async Task SetPaymentIntentAsync(Guid orderId, string paymentIntentId, CancellationToken ct = default)

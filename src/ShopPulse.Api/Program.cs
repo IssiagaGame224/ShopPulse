@@ -50,6 +50,9 @@ builder.Services.AddScoped<ShopPulse.Application.IOrderAdmin>(sp => sp.GetRequir
 builder.Services.AddSingleton<ShopPulse.Application.IOrderEmailSender, SmtpOrderEmailSender>();
 // Paramètres commerciaux (livraison, TVA) : source unique lue par l'API et exposée au Web.
 builder.Services.AddSingleton<ShopPulse.Application.IStoreConfigProvider, StoreConfigProvider>();
+// Outbox : les emails transactionnels sont écrits en base dans la transaction métier,
+// puis envoyés de façon asynchrone par ce worker (jamais perdus si le SMTP est en panne).
+builder.Services.AddHostedService<OutboxWorker>();
 
 // Paiement (phase 6) : Stripe si les clés sont configurées (user-secrets / env),
 // sinon simulateur de dev — la boucle complète reste testable sans compte Stripe.
@@ -145,7 +148,12 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Sonde de santé : état de la base et de Keycloak, en JSON détaillé.
+// Sondes : /health/live = le processus répond (aucune dépendance) ;
+// /health = disponibilité réelle (base + Keycloak), JSON détaillé.
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+       Predicate = _ => false,
+});
 app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
        ResponseWriter = WriteHealthJson,
@@ -279,16 +287,8 @@ api.MapPost("/orders", async (PlaceOrderRequest req, HttpContext ctx,
                      await cache.RemoveByTagAsync("catalog", ct);
                      foreach (var (productId, newStock) in placement.StockUpdates)
                             await publisher.PublishAsync(productId, newStock);
-                     try
-                     {
-                            // Effet de bord : un SMTP en panne ne fait JAMAIS échouer la commande.
-                            await emails.SendConfirmationAsync(placement.Order!, ct);
-                     }
-                     catch (Exception ex)
-                     {
-                            logger.LogWarning(ex, "Email de confirmation non envoyé pour la commande {OrderId}.",
-                                   placement.Order!.Id);
-                     }
+                     // L'email de confirmation part via l'Outbox (écrit dans la transaction
+                     // de la commande, envoyé par le worker — jamais perdu).
                      return Results.Created($"/api/orders/{placement.Order!.Id}", placement.Order);
               case ShopPulse.Application.OrderPlacementStatus.Replayed:
                      return Results.Ok(placement.Order);
@@ -482,15 +482,7 @@ admin.MapPut("/orders/{id:guid}/status", async (Guid id, SetOrderStatusRequest r
                      await publisher.PublishAsync(productId, newStock);
        }
 
-       try
-       {
-              // Notification client : un SMTP en panne ne fait pas échouer la transition.
-              await emails.SendStatusChangedAsync(result.Order, ct);
-       }
-       catch (Exception ex)
-       {
-              logger.LogWarning(ex, "Email de statut non envoyé pour la commande {OrderId}.", id);
-       }
+       // Email de statut : écrit en Outbox par SetStatusAsync, envoyé par le worker.
        return Results.Ok(result.Order);
 })
 .WithName("AdminSetOrderStatus")
@@ -562,14 +554,7 @@ static async Task<IResult> ConfirmPaidAsync(Guid orderId, EfOrderService orders,
                      ? Results.Conflict(new { error = result.Error })
                      : Results.NotFound();
 
-       try
-       {
-              await emails.SendStatusChangedAsync(result.Order, ct);
-       }
-       catch (Exception ex)
-       {
-              logger.LogWarning(ex, "Email de statut non envoyé pour la commande {OrderId}.", orderId);
-       }
+       // Email de statut : écrit en Outbox par SetStatusAsync, envoyé par le worker.
        return Results.Ok(result.Order);
 }
 

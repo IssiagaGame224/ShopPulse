@@ -40,10 +40,20 @@ public class CheckoutE2eTests : IAsyncLifetime
               var page = await _browser.NewPageAsync();
               await page.GotoAsync($"{WebUrl}/fr/product/{ProductId}");
               await page.WaitForSelectorAsync("button.sp-btn--primary");
-              await page.WaitForTimeoutAsync(1500);        // laisser le circuit SignalR se connecter
 
-              await page.ClickAsync("button.sp-btn--primary");   // Ajouter au panier
-              await page.WaitForTimeoutAsync(300);
+              // Le clic n'est pris en compte qu'une fois le circuit SignalR connecté :
+              // cliquer puis attendre le badge panier à 1, avec nouvel essai si besoin.
+              for (var attempt = 0; attempt < 4; attempt++)
+              {
+                     await page.ClickAsync("button.sp-btn--primary");
+                     try
+                     {
+                            await page.WaitForSelectorAsync(".cart-badge:has-text('1')",
+                                   new PageWaitForSelectorOptions { Timeout = 4000 });
+                            break;
+                     }
+                     catch (TimeoutException) when (attempt < 3) { /* circuit pas prêt : on reclique */ }
+              }
 
               // Navigation améliorée (liens internes) : même circuit → le panier survit.
               await page.ClickAsync("a[href='/cart']");
@@ -66,14 +76,21 @@ public class CheckoutE2eTests : IAsyncLifetime
               await page.WaitForSelectorAsync("text=Commande confirmée",
                      new PageWaitForSelectorOptions { Timeout = 15000 });
 
-              // Effets réels : stock décrémenté d'exactement 1, email capturé par Mailpit,
-              // email de statut « payée » envoyé (confirmation simulée = webhook en dev).
+              // Effets réels : stock décrémenté d'exactement 1 ; emails capturés par Mailpit
+              // (envoyés de façon asynchrone par le worker Outbox → sondage jusqu'à 20 s).
               Assert.Equal(stockBefore - 1, await GetStockAsync());
 
-              var mailpit = await _http.GetFromJsonAsync<JsonElement>(
-                     $"{MailpitUrl}/api/v1/search?query=to:e2e@example.fr");
-              Assert.True(mailpit.GetProperty("messages_count").GetInt32() >= 2,
-                     "Emails de confirmation et de statut attendus dans Mailpit.");
+              var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
+              var count = 0;
+              while (DateTime.UtcNow < deadline)
+              {
+                     var mailpit = await _http.GetFromJsonAsync<JsonElement>(
+                            $"{MailpitUrl}/api/v1/search?query=to:e2e@example.fr");
+                     count = mailpit.GetProperty("messages_count").GetInt32();
+                     if (count >= 2) break;   // confirmation + statut « payée »
+                     await Task.Delay(1000);
+              }
+              Assert.True(count >= 2, $"Emails de confirmation et de statut attendus dans Mailpit ({count} reçu).");
        }
 
        private async Task<int> GetStockAsync()
