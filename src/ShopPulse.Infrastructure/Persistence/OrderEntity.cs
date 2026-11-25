@@ -22,13 +22,15 @@ public class OrderEntity
        public decimal Total { get; set; }
        public decimal ShippingCost { get; set; }
        public decimal TaxRate { get; set; }
+       public string? PromoCode { get; set; }
+       public decimal Discount { get; set; }
        public string? PaymentIntentId { get; set; }
        public List<OrderLineEntity> Lines { get; set; } = [];
 
        public Order ToDomain() =>
               new(Id, Email, FullName, Address, PostalCode, Currency, Status, CreatedAt,
                      Lines.Select(l => l.ToDomain()).ToList(), UserId, PaymentIntentId,
-                     ShippingCost, TaxRate);
+                     ShippingCost, TaxRate, PromoCode, Discount);
 }
 
 /// <summary>Ligne persistée : ProductId est une référence SOUPLE (pas de clé étrangère
@@ -69,6 +71,8 @@ public class OrderEntityConfiguration : IEntityTypeConfiguration<OrderEntity>
               o.Property(x => x.Total).HasPrecision(18, 2);
               o.Property(x => x.ShippingCost).HasPrecision(18, 2);
               o.Property(x => x.TaxRate).HasPrecision(5, 4);
+              o.Property(x => x.PromoCode).HasMaxLength(32);
+              o.Property(x => x.Discount).HasPrecision(18, 2);
               o.Property(x => x.PaymentIntentId).HasMaxLength(100);
               o.HasMany(x => x.Lines).WithOne()
                      .HasForeignKey(l => l.OrderId)

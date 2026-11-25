@@ -75,6 +75,10 @@ namespace ShopPulse.Infrastructure.Persistence.Migrations
                         .HasMaxLength(3)
                         .HasColumnType("character varying(3)");
 
+                    b.Property<decimal>("Discount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(256)
@@ -98,6 +102,10 @@ namespace ShopPulse.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
+
+                    b.Property<string>("PromoCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<decimal>("ShippingCost")
                         .HasPrecision(18, 2)
@@ -2695,6 +2703,71 @@ namespace ShopPulse.Infrastructure.Persistence.Migrations
                             Price = 310.0m,
                             Sku = "SP-0200",
                             Stock = 50
+                        });
+                });
+
+            modelBuilder.Entity("ShopPulse.Infrastructure.Persistence.PromoCodeEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<int?>("MaxUses")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UsedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Value")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("promo_codes", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_promo_codes_value", "\"Kind\" <> 'Percent' OR (\"Value\" > 0 AND \"Value\" <= 100)");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Active = true,
+                            Code = "BIENVENUE10",
+                            Kind = "Percent",
+                            UsedCount = 0,
+                            Value = 10m
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Active = true,
+                            Code = "FIXE5",
+                            Kind = "Amount",
+                            UsedCount = 0,
+                            Value = 5m
                         });
                 });
 

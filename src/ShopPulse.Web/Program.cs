@@ -189,6 +189,7 @@ builder.Services.AddScoped<IOrderAdmin>(sp => sp.GetRequiredService<AdminApiClie
 builder.Services.AddScoped<IProductAdmin>(sp => sp.GetRequiredService<AdminApiClient>());
 builder.Services.AddScoped<IStoreConfigProvider, StoreConfigApiClient>();   // livraison/TVA (API)
 builder.Services.AddScoped<IReviewService, ReviewApiClient>(); // avis clients (API, jeton propagé)
+builder.Services.AddScoped<IPromoService, PromoApiClient>();   // codes promo (API)
 builder.Services.AddSingleton<HtmlSanitizerService>();         // MarkupString n'est utilisé qu'avec lui
 builder.Services.AddSingleton<CatalogNotifier>();   // bus sans état : SEUL Singleton métier
 builder.Services.AddScoped<IFavoriteService, InMemoryFavoriteService>();

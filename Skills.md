@@ -63,6 +63,13 @@
   cache en cascade (`docs/06`).
 - **Pattern Outbox** : messages écrits dans la transaction métier, worker de
   relance avec retry ×5 — reprise après panne SMTP démontrée (`docs/21`).
+- **Écritures conditionnelles atomiques** : le même pattern SQL (UPDATE … WHERE
+  condition RETURNING) pour le stock (docs/12), le restock (docs/18) et la
+  consommation de codes promo (docs/29) — quand une règle doit survivre à la
+  concurrence, elle s'écrit en SQL, pas en C#.
+- **Features full-stack en workflow PR** : avis clients (docs/28) et codes promo
+  (docs/29) — entité → migration → endpoints → port → client HTTP → composant →
+  tests, une branche, une PR, CI verte.
 
 ## 4. Sécurité
 
@@ -116,7 +123,9 @@
   (`docs/09` → `docs/26`).
 - **Accessibilité automatisée** : axe-core, 5 pages × 3 langues, RTL inclus, 5/5
   (`docs/08`).
-- **Robustesse des tests** (leçons vécues) : jamais de données consommables en dur
+- **Robustesse des tests** (leçons vécues) : collection xUnit unique pour
+  séquentialiser les classes E2E (le parallélisme des navigateurs rend les circuits
+  SignalR flaky — docs/28) ; jamais de données consommables en dur
   (produits choisis en stock dynamiquement — `TestCatalog`), jamais de dépendance
   à la culture de l'OS, sélecteurs stables, sondage plutôt que sleep (`docs/24`-`25`).
 

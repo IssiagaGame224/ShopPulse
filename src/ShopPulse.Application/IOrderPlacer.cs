@@ -14,7 +14,8 @@ public sealed record PlaceOrderCommand(
        string PostalCode,
        IReadOnlyList<CartLineRequest> Lines,
        string IdempotencyKey,
-       string? UserId = null);
+       string? UserId = null,
+       string? PromoCode = null);
 
 public sealed record CartLineRequest(int ProductId, int Quantity);
 

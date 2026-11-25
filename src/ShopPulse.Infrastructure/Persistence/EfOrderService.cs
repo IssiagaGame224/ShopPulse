@@ -12,7 +12,7 @@ namespace ShopPulse.Infrastructure.Persistence;
 ///   rejoue la commande existante sans doublon ni double décrément — y compris sous
 ///   requêtes concurrentes (la violation d'unicité PostgreSQL sert de filet).</summary>
 public class EfOrderService(ShopPulseDbContext db, EfProductService products,
-       IStoreConfigProvider storeConfig) : IOrderPlacer, IOrderAdmin
+       IStoreConfigProvider storeConfig, EfPromoService promos) : IOrderPlacer, IOrderAdmin
 {
        public async Task<OrderPlacement> PlaceOrderAsync(PlaceOrderCommand cmd, CancellationToken ct = default)
        {
@@ -80,10 +80,25 @@ public class EfOrderService(ShopPulseDbContext db, EfProductService products,
                             };
                      })],
               };
+              // Code promo éventuel : validé puis CONSOMMÉ dans cette transaction —
+              // l'UPDATE conditionnel re-vérifie tout côté base (filet anti-course),
+              // et un rollback (stock insuffisant plus bas, doublon d'idempotence)
+              // annule aussi la consommation. Le rejeu idempotent ne re-consomme pas.
+              var subtotal = entity.Lines.Sum(l => l.LineTotal);
+              if (!string.IsNullOrWhiteSpace(cmd.PromoCode))
+              {
+                     var promo = await promos.FindUsableAsync(cmd.PromoCode, ct);
+                     if (promo is null || !await promos.TryConsumeAsync(promo.Code, ct))
+                            return OrderPlacement.Invalid("Code promo invalide, expiré ou épuisé.");
+                     entity.PromoCode = promo.Code;
+                     entity.Discount = PromoDiscount.Compute(promo.Kind, promo.Value, subtotal);
+              }
+
               // Livraison : règle unique StoreConfig (offerte dès le seuil), calculée
-              // ICI — jamais côté navigateur. Total = marchandises + livraison (TTC).
-              entity.ShippingCost = store.ShippingFor(entity.Lines.Sum(l => l.LineTotal));
-              entity.Total = entity.Lines.Sum(l => l.LineTotal) + entity.ShippingCost;
+              // ICI — jamais côté navigateur — sur le sous-total APRÈS remise.
+              // Total = marchandises − remise + livraison (TTC).
+              entity.ShippingCost = store.ShippingFor(subtotal - entity.Discount);
+              entity.Total = subtotal - entity.Discount + entity.ShippingCost;
 
               db.Orders.Add(entity);
               // Outbox : l'email de confirmation est garanti par la MÊME transaction

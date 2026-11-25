@@ -227,4 +227,61 @@
   <data name="DeleteReview" xml:space="preserve">
     <value>حذف</value>
   </data>
+  <data name="AdminPromoTitle" xml:space="preserve">
+    <value>رموز التخفيض</value>
+  </data>
+  <data name="NewPromoTitle" xml:space="preserve">
+    <value>رمز جديد</value>
+  </data>
+  <data name="PromoCodeLabel" xml:space="preserve">
+    <value>الرمز</value>
+  </data>
+  <data name="PromoKindLabel" xml:space="preserve">
+    <value>النوع</value>
+  </data>
+  <data name="PromoValueLabel" xml:space="preserve">
+    <value>القيمة</value>
+  </data>
+  <data name="MaxUsesLabel" xml:space="preserve">
+    <value>أقصى عدد استخدامات</value>
+  </data>
+  <data name="KindPercent" xml:space="preserve">
+    <value>نسبة مئوية</value>
+  </data>
+  <data name="KindAmount" xml:space="preserve">
+    <value>مبلغ ثابت</value>
+  </data>
+  <data name="CreateAction" xml:space="preserve">
+    <value>إنشاء</value>
+  </data>
+  <data name="ColCode" xml:space="preserve">
+    <value>الرمز</value>
+  </data>
+  <data name="ColKind" xml:space="preserve">
+    <value>النوع</value>
+  </data>
+  <data name="ColValue" xml:space="preserve">
+    <value>القيمة</value>
+  </data>
+  <data name="ColUses" xml:space="preserve">
+    <value>الاستخدامات</value>
+  </data>
+  <data name="ColActive" xml:space="preserve">
+    <value>الحالة</value>
+  </data>
+  <data name="PromoActive" xml:space="preserve">
+    <value>نشط</value>
+  </data>
+  <data name="PromoInactive" xml:space="preserve">
+    <value>غير نشط</value>
+  </data>
+  <data name="ActivateAction" xml:space="preserve">
+    <value>تفعيل</value>
+  </data>
+  <data name="DeactivateAction" xml:space="preserve">
+    <value>تعطيل</value>
+  </data>
+  <data name="NoPromo" xml:space="preserve">
+    <value>لا توجد رموز تخفيض.</value>
+  </data>
 </root>

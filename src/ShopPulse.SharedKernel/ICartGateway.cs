@@ -11,6 +11,10 @@ public interface ICartGateway
        /// <summary>Lignes courantes (lecture pour le tunnel de commande).</summary>
        IReadOnlyList<CartLine> Lines { get; }
 
+       /// <summary>Code promo validé dans le panier (null sinon) : transmis à la création
+       /// de la commande, où le serveur le re-valide et le consomme.</summary>
+       string? PromoCode { get; }
+
        /// <summary>Vide le panier (après une commande confirmée).</summary>
        void Clear();
 }

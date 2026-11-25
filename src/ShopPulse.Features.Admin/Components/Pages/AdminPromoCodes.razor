@@ -1,0 +1,122 @@
+@page "/admin/promo-codes"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = "CanManageStock")]
+@using Microsoft.Extensions.Localization
+@using ShopPulse.UI.Resources
+@inject IPromoService Promos
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["AdminPromoTitle"] — ShopPulse</PageTitle>
+<h1>@L["AdminPromoTitle"]</h1>
+
+<nav aria-label="@L["BackOffice"]">
+       <a href="/admin/orders">@L["AdminOrdersTitle"]</a> · <a href="/admin/products">@L["AdminProductsTitle"]</a> · <a href="/admin/reviews">@L["AdminReviewsTitle"]</a> · <a href="/admin/promo-codes" aria-current="page">@L["AdminPromoTitle"]</a>
+</nav>
+
+<fieldset class="promo-create">
+       <legend>@L["NewPromoTitle"]</legend>
+       <div class="promo-create-grid">
+              <label>@L["PromoCodeLabel"] <input @bind="_code" maxlength="32" /></label>
+              <label>@L["PromoKindLabel"]
+                     <select @bind="_kind">
+                            <option value="@PromoKind.Percent">@L["KindPercent"]</option>
+                            <option value="@PromoKind.Amount">@L["KindAmount"]</option>
+                     </select>
+              </label>
+              <label>@L["PromoValueLabel"] <input type="number" step="0.01" min="0" @bind="_value" /></label>
+              <label>@L["MaxUsesLabel"] <input type="number" min="1" @bind="_maxUses" /></label>
+       </div>
+       @if (_error is not null)
+       {
+              <p role="alert" class="promo-error">@_error</p>
+       }
+       <button type="button" class="sp-btn sp-btn--primary" @onclick="CreateAsync" disabled="@_saving">
+              @(_saving ? L["Saving"] : L["CreateAction"])
+       </button>
+</fieldset>
+
+@if (_promos is null)
+{
+       <p aria-busy="true">@L["Loading"]</p>
+}
+else if (_promos.Count == 0)
+{
+       <p>@L["NoPromo"]</p>
+}
+else
+{
+       <table>
+              <thead>
+                     <tr>
+                            <th>@L["ColCode"]</th><th>@L["ColKind"]</th><th>@L["ColValue"]</th>
+                            <th>@L["ColUses"]</th><th>@L["ColActive"]</th><th></th>
+                     </tr>
+              </thead>
+              <tbody>
+                     @foreach (var p in _promos)
+                     {
+                            <tr @key="p.Id">
+                                   <td><strong>@p.Code</strong></td>
+                                   <td>@(p.Kind == PromoKind.Percent ? L["KindPercent"] : L["KindAmount"])</td>
+                                   <td>@(p.Kind == PromoKind.Percent ? $"{p.Value:0.#} %" : p.Value.ToString("0.00"))</td>
+                                   <td>@p.UsedCount@(p.MaxUses is { } max ? $" / {max}" : "")</td>
+                                   <td>@(p.Active ? L["PromoActive"] : L["PromoInactive"])</td>
+                                   <td>
+                                          <button type="button" @onclick="() => ToggleAsync(p)" disabled="@_saving">
+                                                 @(p.Active ? L["DeactivateAction"] : L["ActivateAction"])
+                                          </button>
+                                   </td>
+                            </tr>
+                     }
+              </tbody>
+       </table>
+}
+
+@code {
+       private IReadOnlyList<PromoCode>? _promos;
+       private string _code = "";
+       private PromoKind _kind = PromoKind.Percent;
+       private decimal _value = 10m;
+       private int? _maxUses;
+       private string? _error;
+       private bool _saving;
+
+       protected override async Task OnInitializedAsync() =>
+              _promos = await Promos.GetAllAsync();
+
+       private async Task CreateAsync()
+       {
+              _error = null;
+              _saving = true;
+              try
+              {
+                     var (promo, error) = await Promos.CreateAsync(_code, _kind, _value, null, _maxUses);
+                     if (promo is null)
+                     {
+                            _error = error;
+                            return;
+                     }
+                     _promos = [.. (_promos ?? []).Append(promo).OrderBy(p => p.Code)];
+                     _code = "";
+                     _maxUses = null;
+              }
+              finally
+              {
+                     _saving = false;
+              }
+       }
+
+       private async Task ToggleAsync(PromoCode promo)
+       {
+              _saving = true;
+              try
+              {
+                     if (await Promos.SetActiveAsync(promo.Id, !promo.Active) && _promos is not null)
+                            _promos = [.. _promos.Select(p => p.Id == promo.Id ? p with { Active = !p.Active } : p)];
+              }
+              finally
+              {
+                     _saving = false;
+              }
+       }
+}

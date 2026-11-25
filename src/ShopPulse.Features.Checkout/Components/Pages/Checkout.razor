@@ -139,7 +139,7 @@ else
                      var placement = await OrderPlacer.PlaceOrderAsync(new(
                             _shipping.Email, _shipping.FullName, _shipping.Address, _shipping.PostalCode,
                             [.. Cart.Lines.Select(l => new CartLineRequest(l.ProductId, l.Quantity))],
-                            _idempotencyKey));
+                            _idempotencyKey, PromoCode: Cart.PromoCode));
 
                      if (placement.Order is null)
                      {

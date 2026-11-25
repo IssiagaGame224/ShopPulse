@@ -31,15 +31,17 @@ public record Order(
        string? UserId = null,
        string? PaymentIntentId = null,
        decimal ShippingCost = 0m,
-       decimal TaxRate = 0.20m)
+       decimal TaxRate = 0.20m,
+       string? PromoCode = null,
+       decimal Discount = 0m)
 {
-       /// <summary>Marchandises TTC (somme des lignes).</summary>
+       /// <summary>Marchandises TTC (somme des lignes), avant remise.</summary>
        public decimal Subtotal => Lines.Sum(l => l.LineTotal);
 
-       /// <summary>TVA incluse dans le sous-total (prix B2C : déduite, pas ajoutée).
+       /// <summary>TVA incluse dans le total (prix B2C : déduite, pas ajoutée).
        /// La livraison est un service TTC au même taux dans ce modèle simple.</summary>
-       public decimal TaxAmount => Math.Round((Subtotal + ShippingCost) * TaxRate / (1 + TaxRate), 2);
+       public decimal TaxAmount => Math.Round((Subtotal - Discount + ShippingCost) * TaxRate / (1 + TaxRate), 2);
 
-       /// <summary>Total à payer : marchandises + livraison, TTC.</summary>
-       public decimal Total => Subtotal + ShippingCost;
+       /// <summary>Total à payer : marchandises − remise + livraison, TTC.</summary>
+       public decimal Total => Subtotal - Discount + ShippingCost;
 }
