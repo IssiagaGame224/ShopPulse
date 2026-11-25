@@ -1,0 +1,13 @@
+<button class="sp-btn sp-btn--@Variant.ToString().ToLowerInvariant()"
+              type="@Type" @attributes="Extra">
+       @ChildContent
+</button>
+
+@code {
+       public enum ButtonVariant { Primary, Secondary, Danger }
+
+       [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Primary;
+       [Parameter] public string Type { get; set; } = "button";
+       [Parameter] public RenderFragment? ChildContent { get; set; }
+       [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? Extra { get; set; }
+}

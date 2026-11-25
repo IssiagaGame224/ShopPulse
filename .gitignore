@@ -1,0 +1,22 @@
+# ---- .NET ----
+bin/
+obj/
+out/
+*.user
+*.suo
+
+# ---- IDE / outils ----
+.vs/
+.vscode/
+.idea/
+
+# ---- Contenu hors dépôt ----
+# Support de cours (droits d'auteur, volumineux)
+ShopPulse_Cours_*.pdf
+ShopPulse Architecture Universelle.pdf
+# Manuscrit du livre (publié séparément)
+Livre/
+docs/manuscrit/
+
+# ---- Divers ----
+*.log

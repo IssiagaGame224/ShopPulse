@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+**/out/
+.git/
+docs/
+docker/
+*.md
+*.pdf
+.vs/

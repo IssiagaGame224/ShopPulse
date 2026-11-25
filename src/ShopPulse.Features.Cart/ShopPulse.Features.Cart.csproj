@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ShopPulse.Domain\ShopPulse.Domain.csproj" />
+    <ProjectReference Include="..\ShopPulse.Application\ShopPulse.Application.csproj" />
+    <ProjectReference Include="..\ShopPulse.SharedKernel\ShopPulse.SharedKernel.csproj" />
+    <ProjectReference Include="..\ShopPulse.UI\ShopPulse.UI.csproj" />
+    <ProjectReference Include="..\ShopPulse.Modularity\ShopPulse.Modularity.csproj" />
+  </ItemGroup>
+
+</Project>

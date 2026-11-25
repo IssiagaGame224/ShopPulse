@@ -1,0 +1,121 @@
+@page "/product/{Id:int}"
+@inject IProductService Products
+
+<PageTitle>@(_p?.Name ?? "Produit") — ShopPulse</PageTitle>
+<HeadContent>
+       <meta name="description" content="@_p?.Description" />
+       <link rel="canonical" href="https://shoppulse.example/product/@Id" />
+       @if (_p is { } seo)
+       {
+              <script type="application/ld+json">
+                  { "@@context":"https://schema.org","@@type":"Product",
+                    "name":"@seo.Name","sku":"@seo.Sku","description":"@seo.Description",
+                    "offers":{ "@@type":"Offer","price":"@seo.Price","priceCurrency":"EUR",
+                               "availability":"@(seo.Stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock")" } }
+              </script>
+       }
+</HeadContent>
+
+@if (!_loaded)
+{
+       <p><em>Chargement du produit...</em></p>
+}
+else if (_p is null)
+{
+       <h1>Produit introuvable</h1>
+       <p>Ce produit n'existe pas ou n'est plus disponible. <a href="/catalog">Retour au catalogue</a></p>
+}
+else
+{
+       <nav class="breadcrumb" aria-label="Fil d'Ariane">
+              <ol>
+                     <li><a href="/">Accueil</a></li>
+                     <li><a href="/catalog">Catalogue</a></li>
+                     <li><a href="/catalog?category=@Uri.EscapeDataString(_p.Category)">@_p.Category</a></li>
+                     <li aria-current="page">@_p.Name</li>
+              </ol>
+       </nav>
+
+       <article class="product-hero">
+              <img src="@_p.ImageUrl" alt="@_p.Name" width="480" height="480"
+                     loading="eager" fetchpriority="high" decoding="async" />
+
+              <div class="product-info">
+                     <h1>@_p.Name</h1>
+                     <p class="sku">Référence : @_p.Sku</p>
+
+                     <p class="product-price">
+                            @if (_p.IsOnSale)
+                            {
+                                   <span class="visually-hidden">Prix promo : </span>@_p.Price.ToString("C")
+                                   <s class="old-price"><span class="visually-hidden">Ancien prix : </span>@_p.OldPrice!.Value.ToString("C")</s>
+                                   <span class="badge-promo badge-promo--inline">−@PromoPercent&nbsp;%</span>
+                            }
+                            else
+                            {
+                                   @_p.Price.ToString("C")
+                            }
+                     </p>
+
+                     <p>@_p.Description</p>
+
+                     @* Deux îlots interactifs partageant le circuit : stock temps réel + ajout panier.
+                        Le reste de la page reste du HTML statique. *@
+                     <div class="product-actions">
+                            <AddToCartButton ProductId="Id" @rendermode="InteractiveServer" />
+                            <StockWatcher ProductId="Id" Stock="@_p.Stock" @rendermode="InteractiveServer" />
+                     </div>
+              </div>
+       </article>
+
+       @if (_p.Features.Count > 0)
+       {
+              <section class="specs" aria-labelledby="specs-title">
+                     <h2 id="specs-title">Caractéristiques</h2>
+                     <ul>
+                            @foreach (var feature in _p.Features)
+                            {
+                                   <li>@feature</li>
+                            }
+                     </ul>
+              </section>
+       }
+
+       @if (_related.Count > 0)
+       {
+              <section class="home-section" aria-labelledby="related-title">
+                     <h2 id="related-title">Dans la même catégorie</h2>
+                     <div class="grid">
+                            @foreach (var r in _related)
+                            {
+                                   <ProductCard @key="r.Id" ImageUrl="@r.ImageUrl" Name="@r.Name"
+                                                       Price="@r.Price" OldPrice="@r.OldPrice" Stock="@r.Stock">
+                                          <a href="/product/@r.Id">Voir</a>
+                                   </ProductCard>
+                            }
+                     </div>
+              </section>
+       }
+}
+
+@code {
+       [Parameter] public int Id { get; set; }
+       private Product? _p;
+       private IReadOnlyList<Product> _related = [];
+       private bool _loaded;
+
+       private int PromoPercent =>
+              _p is { IsOnSale: true } ? (int)Math.Round((1 - _p.Price / _p.OldPrice!.Value) * 100) : 0;
+
+       protected override async Task OnInitializedAsync()
+       {
+              _p = await Products.GetByIdAsync(Id);
+              if (_p is not null)
+              {
+                     // Produits liés : même catégorie, hors produit courant, 4 max.
+                     var page = await Products.GetPageAsync(0, 5, null, _p.Category);
+                     _related = [.. page.Items.Where(r => r.Id != Id).Take(4)];
+              }
+              _loaded = true;
+       }
+}

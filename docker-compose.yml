@@ -1,0 +1,107 @@
+# ShopPulse — pile de déploiement de développement « comme la production ».
+# Trois services applicatifs + Keycloak. Un seul réseau ; les ports publiés sont
+# les mêmes qu'en développement (5026, 5299, 8080).
+#
+#   docker compose up -d --build        construit et démarre tout
+#   docker compose logs -f web          suit les journaux
+#   docker compose down                 arrête et nettoie
+#
+# Piège documenté (chapitre bonus) : DNS split-horizon autour de Keycloak.
+# - Le navigateur parle à http://localhost:8080 (KC_HOSTNAME : émetteur public stable).
+# - Le conteneur Web charge les métadonnées via http://keycloak:8080 (réseau compose).
+# - L'émetteur du jeton reste http://localhost:8080/realms/shoppulse (ValidIssuer).
+
+services:
+  # Base de données de la boutique (phase « vraie boutique »). Port publié pour que
+  # `dotnet run` en local (hors conteneur) puisse s'y connecter. Mot de passe de
+  # développement uniquement — en production : magasin de secrets / variable d'environnement.
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: shoppulse
+      POSTGRES_USER: shoppulse
+      POSTGRES_PASSWORD: dev-password-shoppulse
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shoppulse -d shoppulse"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    # --hostname : émetteur et URLs publiques stables (localhost pour le navigateur).
+    # --hostname-backchannel-dynamic : les URLs de backchannel (métadonnées, JWKS)
+    # suivent l'hôte de la requête → le conteneur Web peut les charger via le réseau interne.
+    command: start-dev --import-realm --hostname=http://localhost:8080 --hostname-backchannel-dynamic=true
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    volumes:
+      - ./docker/keycloak/realm-shoppulse.json:/opt/keycloak/data/import/realm.json:ro
+    ports:
+      - "8080:8080"
+
+  api:
+    build:
+      context: .
+      dockerfile: src/ShopPulse.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # Conteneur → conteneur : le DNS « db » est résolu par le réseau compose.
+      ConnectionStrings__ShopPulse: Host=db;Port=5432;Database=shoppulse;Username=shoppulse;Password=dev-password-shoppulse
+      Store__Currency: EUR
+      # Validation des jetons bearer (phase 4) : métadonnées via le réseau interne,
+      # émetteur = URL publique (même DNS split-horizon que le Web).
+      Oidc__Authority: http://keycloak:8080/realms/shoppulse
+      Oidc__ValidIssuer: http://localhost:8080/realms/shoppulse
+      Oidc__RequireHttpsMetadata: "false"
+      # Emails de confirmation capturés par Mailpit (UI : http://localhost:8025).
+      Email__Smtp__Host: mailpit
+      Email__Smtp__Port: "1025"
+      Email__Smtp__From: boutique@shoppulse.local
+    ports:
+      - "5299:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Capture SMTP de développement : aucun email ne sort, tout est lisible dans l'UI web.
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"   # UI web + API
+      - "1025:1025"   # SMTP
+
+  web:
+    build:
+      context: .
+      dockerfile: src/ShopPulse.Web/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # Conteneur → conteneur pour l'API ; navigateur → localhost:5026 pour le circuit.
+      Api__BaseUrl: http://api:8080/
+      # Métadonnées OIDC via le réseau interne ; émetteur validé = URL publique.
+      # Keycloak start-dev est en clair : désactivé explicitement (défaut : strict hors dev).
+      Oidc__Authority: http://keycloak:8080/realms/shoppulse
+      Oidc__ValidIssuer: http://localhost:8080/realms/shoppulse
+      Oidc__RequireHttpsMetadata: "false"
+      # Dev uniquement (en production : magasin de secrets). Les user-secrets de l'hôte
+      # n'existent pas dans le conteneur — sans ce réglage : invalid_client_credentials.
+      Oidc__ClientSecret: dev-secret-shoppulse
+    ports:
+      - "5026:8080"
+    depends_on:
+      - keycloak
+      - api
+    volumes:
+      # Clés Data Protection persistantes : sinon les jetons antiforgery meurent
+      # à chaque redémarrage du conteneur (module 9, piège n° 9).
+      - dataprotection-keys:/root/.aspnet/DataProtection-Keys
+
+volumes:
+  dataprotection-keys:
+  pgdata:

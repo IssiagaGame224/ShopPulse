@@ -1,0 +1,147 @@
+@page "/admin/products/new"
+@page "/admin/products/{Id:int}/edit"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = "CanManageStock")]
+@inject IProductService Products
+@inject IProductAdmin Admin
+@inject NavigationManager Nav
+
+<PageTitle>@(Id is null ? "Nouveau produit" : "Modifier le produit") — Back-office ShopPulse</PageTitle>
+<h1>@(Id is null ? "Nouveau produit" : $"Modifier « {_model.Name} »")</h1>
+
+@if (_loading)
+{
+       <p aria-busy="true">Chargement…</p>
+}
+else
+{
+       <EditForm Model="_model" OnValidSubmit="SaveAsync" FormName="product-edit">
+              <DataAnnotationsValidator />
+
+              <p>
+                     <label for="sku">Référence (SKU)</label>
+                     <InputText id="sku" @bind-Value="_model.Sku" />
+              </p>
+              <p>
+                     <label for="name">Nom</label>
+                     <InputText id="name" @bind-Value="_model.Name" />
+              </p>
+              <p>
+                     <label for="cat">Catégorie</label>
+                     <InputSelect id="cat" @bind-Value="_model.Category">
+                            @foreach (var c in _categories)
+                            {
+                                   <option value="@c">@c</option>
+                            }
+                     </InputSelect>
+              </p>
+              <p>
+                     <label for="price">Prix</label>
+                     <InputNumber id="price" @bind-Value="_model.Price" />
+              </p>
+              <p>
+                     <label for="oldprice">Prix barré (vide = pas de promo)</label>
+                     <InputNumber id="oldprice" @bind-Value="_model.OldPrice" />
+              </p>
+              <p>
+                     <label for="stock">Stock</label>
+                     <InputNumber id="stock" @bind-Value="_model.Stock" />
+              </p>
+              <p>
+                     <label for="img">Image (chemin)</label>
+                     <InputText id="img" @bind-Value="_model.ImageUrl" />
+              </p>
+              <p>
+                     <label for="desc">Description</label>
+                     <InputTextArea id="desc" rows="4" @bind-Value="_model.Description" />
+              </p>
+              <p>
+                     <label for="features">Caractéristiques (une par ligne)</label>
+                     <InputTextArea id="features" rows="5" @bind-Value="_model.FeaturesText" />
+              </p>
+
+              <button type="submit" disabled="@_saving">@(_saving ? "Enregistrement…" : "Enregistrer")</button>
+              <a href="/admin/products">Annuler</a>
+       </EditForm>
+
+       @if (_error is not null)
+       {
+              <p role="alert">@_error</p>
+       }
+}
+
+@code {
+       [Parameter] public int? Id { get; set; }
+
+       private readonly Model _model = new();
+       private IReadOnlyList<string> _categories = [];
+       private bool _loading = true;
+       private bool _saving;
+       private string? _error;
+
+       protected override async Task OnInitializedAsync()
+       {
+              _categories = await Products.GetCategoriesAsync();
+              _model.Category = _categories.FirstOrDefault() ?? "";
+
+              if (Id is { } id)
+              {
+                     if (await Products.GetByIdAsync(id) is { } p)
+                     {
+                            _model.Sku = p.Sku;
+                            _model.Name = p.Name;
+                            _model.Category = p.Category;
+                            _model.Price = p.Price;
+                            _model.OldPrice = p.OldPrice;
+                            _model.Stock = p.Stock;
+                            _model.ImageUrl = p.ImageUrl;
+                            _model.Description = p.Description;
+                            _model.FeaturesText = string.Join(Environment.NewLine, p.Features);
+                     }
+                     else
+                     {
+                            _error = $"Produit {id} introuvable.";
+                     }
+              }
+              _loading = false;
+       }
+
+       private async Task SaveAsync()
+       {
+              _saving = true;
+              _error = null;
+              try
+              {
+                     var upsert = new ProductUpsert(_model.Sku, _model.Name, _model.Category,
+                            _model.Price, _model.OldPrice, _model.Stock, _model.ImageUrl,
+                            _model.Description,
+                            [.. _model.FeaturesText.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]);
+
+                     var result = Id is { } id
+                            ? await Admin.UpdateAsync(id, upsert)
+                            : await Admin.CreateAsync(upsert);
+
+                     if (result.Product is not null)
+                            Nav.NavigateTo("/admin/products");
+                     else
+                            _error = result.Error;
+              }
+              finally
+              {
+                     _saving = false;
+              }
+       }
+
+       private sealed class Model
+       {
+              public string Sku { get; set; } = "";
+              public string Name { get; set; } = "";
+              public string Category { get; set; } = "";
+              public decimal Price { get; set; }
+              public decimal? OldPrice { get; set; }
+              public int Stock { get; set; }
+              public string ImageUrl { get; set; } = "/img/p0.jpg";
+              public string Description { get; set; } = "";
+              public string FeaturesText { get; set; } = "";
+       }
+}

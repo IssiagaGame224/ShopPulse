@@ -1,0 +1,40 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@* <dialog> natif : piège de focus, Échap, inertie de l'arrière-plan et retour du focus
+   sont gérés par le navigateur. Pour une confirmation destructive, focalisez « Annuler ». *@
+<dialog @ref="_dlg" aria-labelledby="@_titleId" class="sp-modal">
+       <h2 id="@_titleId">@Title</h2>
+       @ChildContent
+       <button type="button" @onclick="CloseAsync">Fermer</button>
+</dialog>
+
+@code {
+       [Parameter, EditorRequired] public string Title { get; set; } = "";
+       [Parameter] public RenderFragment? ChildContent { get; set; }
+       [Parameter] public EventCallback Closed { get; set; }
+
+       private readonly string _titleId = $"dlg-{Guid.NewGuid():N}";
+       private ElementReference _dlg;
+       private IJSObjectReference? _mod;
+       private DotNetObjectReference<Modal>? _self;
+
+       protected override async Task OnAfterRenderAsync(bool first)
+       {
+              if (!first) return;
+              _mod = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/ShopPulse.UI/js/a11y.js");
+              _self = DotNetObjectReference.Create(this);
+              await _mod.InvokeVoidAsync("onClose", _dlg, _self);
+       }
+
+       public async Task OpenAsync() => await _mod!.InvokeVoidAsync("openDialog", _dlg);
+       public async Task CloseAsync() => await _mod!.InvokeVoidAsync("closeDialog", _dlg);
+
+       [JSInvokable] public Task OnNativeClose() => Closed.InvokeAsync();
+
+       public async ValueTask DisposeAsync()
+       {
+              try { if (_mod is not null) await _mod.DisposeAsync(); } catch (JSDisconnectedException) { }
+              _self?.Dispose();
+       }
+}

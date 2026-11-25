@@ -1,0 +1,48 @@
+@* Présentation pure : aucun service injecté, aucune donnée chargée.
+   Le parent fournit tout et récupère les actions via ChildContent / événements. *@
+<article class="card">
+       @if (PromoPercent is { } percent)
+       {
+              <span class="badge-promo">−@percent&nbsp;%</span>
+       }
+       <img src="@ImageUrl"
+              alt="@Name"
+              width="200" height="200"
+              loading="@(Priority ? "eager" : "lazy")"
+              fetchpriority="@(Priority ? "high" : "auto")"
+              decoding="async" />
+       <h3>@Name</h3>
+       <p class="price">
+              @if (OldPrice is { } old && old > Price)
+              {
+                     <span class="visually-hidden">Prix promo : </span>@Price.ToString("C")
+                     <s class="old-price"><span class="visually-hidden">Ancien prix : </span>@old.ToString("C")</s>
+              }
+              else
+              {
+                     @Price.ToString("C")
+              }
+       </p>
+       <p class="@(InStock ? "stock-ok" : "out")">
+              @(InStock ? $"{Stock} en stock" : "Rupture")
+       </p>
+       @ChildContent
+</article>
+
+@code {
+       [Parameter, EditorRequired] public string ImageUrl { get; set; } = "";
+       [Parameter, EditorRequired] public string Name { get; set; } = "";
+       [Parameter, EditorRequired] public decimal Price { get; set; }
+       [Parameter, EditorRequired] public int Stock { get; set; }
+       [Parameter] public decimal? OldPrice { get; set; }
+       [Parameter] public bool Priority { get; set; }
+       [Parameter] public RenderFragment? ChildContent { get; set; }
+
+       private bool InStock => Stock > 0;
+
+       /// <summary>Pourcentage de remise arrondi, ou null si pas de promo réelle.</summary>
+       private int? PromoPercent =>
+              OldPrice is { } old && old > Price
+                     ? (int)Math.Round((1 - Price / old) * 100)
+                     : null;
+}

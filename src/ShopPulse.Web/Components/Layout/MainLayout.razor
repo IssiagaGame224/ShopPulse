@@ -1,0 +1,54 @@
+@inherits LayoutComponentBase
+@using ShopPulse.Web.Components.Shared
+@inject ShopPulse.Web.Services.CurrentUserAccessor CurrentUser
+
+@* Renseigne le sub de l'utilisateur dans le scope courant : dans un circuit Blazor,
+   c'est le seul chemin pour que les handlers HTTP (sans HttpContext) sachent qui
+   appelle l'API (le AuthenticationState arrive ici en cascade). *@
+@code {
+       [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+       protected override async Task OnParametersSetAsync()
+       {
+              if (AuthState is not null)
+                     CurrentUser.Sub = (await AuthState).User.FindFirst("sub")?.Value;
+       }
+}
+
+<SkipLink />
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main id="main" tabindex="-1">
+        <header>
+            <div class="top-row px-4">
+                <CartBadge @rendermode="InteractiveServer" />
+                <LanguageSwitcher />
+                <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            </div>
+        </header>
+
+        <article class="content px-4">
+            @Body
+        </article>
+
+        <footer>
+            <small>ShopPulse — cours Frontend Engineering (.NET 10, Blazor Server).</small>
+        </footer>
+    </main>
+</div>
+
+@* Îlot invisible : persistance et synchronisation du panier entre onglets *@
+<CartSync @rendermode="InteractiveServer" />
+
+@* Régions live : existent dans le DOM avant tout changement de contenu *@
+<LiveRegion />
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>

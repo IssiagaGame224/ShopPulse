@@ -1,0 +1,91 @@
+@page "/catalog"
+@attribute [StreamRendering]
+@inject QueryClient Query
+@inject IProductService Products
+@inject NavigationManager Nav
+
+<PageTitle>Catalogue — ShopPulse</PageTitle>
+<h1>Catalogue</h1>
+
+@* Fonctionne sans circuit : le formulaire est un simple GET, les filtres vivent dans l'URL *@
+<form method="get" role="search" class="filters">
+       <div>
+              <label for="q">Recherche</label>
+              <input id="q" type="search" name="q" value="@Search" />
+       </div>
+
+       <div>
+              <label for="cat">Catégorie</label>
+              <select id="cat" name="category">
+                     <option value="">Toutes</option>
+                     @foreach (var c in _categories)
+                     {
+                            <option value="@c" selected="@(c == Category)">@c</option>
+                     }
+              </select>
+       </div>
+       <button class="sp-btn sp-btn--primary">Filtrer</button>
+</form>
+
+@if (_items is null)
+{
+       <div class="grid" aria-busy="true">
+              @for (var i = 0; i < 8; i++) { <div class="skeleton"></div> }
+       </div>
+}
+else
+{
+       <p class="results-count">@_total produit(s) — page @CurrentPage / @_pageCount</p>
+       <div class="grid">
+              @foreach (var (p, i) in _items.Select((p, i) => (p, i)))
+              {
+                     <ProductCard @key="p.Id" ImageUrl="@p.ImageUrl" Name="@p.Name"
+                                          Price="@p.Price" OldPrice="@p.OldPrice" Stock="@p.Stock" Priority="@(i < 4)">
+                            <a href="/product/@p.Id">Voir</a>
+                     </ProductCard>
+              }
+       </div>
+
+       <nav aria-label="Pagination">
+              @if (CurrentPage > 1) { <a href="@PageUrl(CurrentPage - 1)">← Précédent</a> }
+              <span>Page @CurrentPage / @_pageCount</span>
+              @if (CurrentPage < _pageCount) { <a href="@PageUrl(CurrentPage + 1)">Suivant →</a> }
+       </nav>
+}
+
+@code {
+       private const int PageSize = 12;
+       private IReadOnlyList<string> _categories = [];
+
+       [SupplyParameterFromQuery] public string? Category { get; set; }
+       [SupplyParameterFromQuery(Name = "q")] public string? Search { get; set; }
+       [SupplyParameterFromQuery(Name = "page")] public int? PageParam { get; set; }
+
+       private int CurrentPage => Math.Max(1, PageParam ?? 1);
+       private IReadOnlyList<Product>? _items;
+       private int _pageCount = 1;
+       private int _total;
+
+       // OnParametersSetAsync (et non OnInitializedAsync) : il se redéclenche quand la query string change.
+       // Filtres et pagination sont exécutés en SQL côté serveur : seule la page demandée
+       // traverse le réseau. Les catégories viennent de la base (fini la liste codée en dur).
+       protected override async Task OnParametersSetAsync()
+       {
+              _items = null; // squelettes pendant le changement de filtre
+
+              if (_categories.Count == 0)
+                     _categories = await Query.GetAsync("categories:all",
+                            ct => Products.GetCategoriesAsync(ct), TimeSpan.FromMinutes(5));
+
+              var page = await Query.GetAsync(
+                     $"products:page:{Category}:{Search}:{CurrentPage}",
+                     ct => Products.GetPageAsync((CurrentPage - 1) * PageSize, PageSize, Search, Category, ct),
+                     TimeSpan.FromSeconds(30));
+
+              _items = page.Items;
+              _total = page.Total;
+              _pageCount = Math.Max(1, (int)Math.Ceiling(page.Total / (double)PageSize));
+       }
+
+       private string PageUrl(int page) => Nav.GetUriWithQueryParameter("page", page);
+}

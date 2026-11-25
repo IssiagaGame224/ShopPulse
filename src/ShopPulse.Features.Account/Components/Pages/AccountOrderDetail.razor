@@ -1,0 +1,40 @@
+@page "/account/orders/{Id:guid}"
+@attribute [Authorize]
+@inject IOrderHistory Orders
+
+<PageTitle>Commande — ShopPulse</PageTitle>
+
+@if (_order is null)
+{
+       <h1>Commande introuvable</h1>
+       <p>Cette commande n'existe pas ou n'appartient pas à votre compte.</p>
+}
+else
+{
+       <h1>Commande @Id.ToString("N")[..8].ToUpperInvariant()</h1>
+       <p>
+              Passée le @_order.CreatedAt.ToString("dd/MM/yyyy") —
+              @AccountOrders.StatusLabel(_order.Status)
+       </p>
+
+       <ul>
+              @foreach (var line in _order.Lines)
+              {
+                     <li>@line.Quantity × @line.ProductName — @line.LineTotal.ToString("0.00") @_order.Currency</li>
+              }
+       </ul>
+       <p><strong>Total : @_order.Total.ToString("0.00") @_order.Currency</strong></p>
+
+       <h2>Livraison</h2>
+       <p>@_order.FullName<br />@_order.Address<br />@_order.PostalCode</p>
+
+       <p><a href="/account/orders">← Mes commandes</a></p>
+}
+
+@code {
+       [Parameter] public Guid Id { get; set; }
+       private Order? _order;
+
+       protected override async Task OnInitializedAsync() =>
+              _order = await Orders.GetByIdAsync(Id);
+}

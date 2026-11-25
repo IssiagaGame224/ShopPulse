@@ -1,0 +1,23 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ShopPulse.Api/ShopPulse.Api.csproj" />
+    <Project Path="src/ShopPulse.Application/ShopPulse.Application.csproj" />
+    <Project Path="src/ShopPulse.Contracts/ShopPulse.Contracts.csproj" />
+    <Project Path="src/ShopPulse.Domain/ShopPulse.Domain.csproj" />
+    <Project Path="src/ShopPulse.Features.Account/ShopPulse.Features.Account.csproj" />
+    <Project Path="src/ShopPulse.Features.Admin/ShopPulse.Features.Admin.csproj" />
+    <Project Path="src/ShopPulse.Features.Cart/ShopPulse.Features.Cart.csproj" />
+    <Project Path="src/ShopPulse.Features.Catalog/ShopPulse.Features.Catalog.csproj" />
+    <Project Path="src/ShopPulse.Features.Checkout/ShopPulse.Features.Checkout.csproj" />
+    <Project Path="src/ShopPulse.Infrastructure/ShopPulse.Infrastructure.csproj" />
+    <Project Path="src/ShopPulse.Modularity/ShopPulse.Modularity.csproj" />
+    <Project Path="src/ShopPulse.SharedKernel/ShopPulse.SharedKernel.csproj" />
+    <Project Path="src/ShopPulse.UI/ShopPulse.UI.csproj" />
+    <Project Path="src/ShopPulse.Web/ShopPulse.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ShopPulse.A11y/ShopPulse.A11y.csproj" />
+    <Project Path="tests/ShopPulse.Architecture.Tests/ShopPulse.Architecture.Tests.csproj" />
+    <Project Path="tests/ShopPulse.E2E/ShopPulse.E2E.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,13 @@
+@implements IDisposable
+@using ShopPulse.Application
+@inject ILiveAnnouncer Announcer
+
+@* Une seule instance, dans le layout. La région existe avant tout changement de contenu. *@
+<div class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">@Announcer.Polite</div>
+<div class="visually-hidden" role="alert" aria-live="assertive" aria-atomic="true">@Announcer.Assertive</div>
+
+@code {
+       protected override void OnInitialized() => Announcer.Changed += OnChanged;
+       private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+       public void Dispose() => Announcer.Changed -= OnChanged;
+}

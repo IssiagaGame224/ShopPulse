@@ -1,0 +1,71 @@
+@implements IAsyncDisposable
+@inject CartStore Cart
+@inject ProtectedLocalStorage Storage
+@inject IJSRuntime JS
+
+@code {
+       private const string Key = "cart";
+
+       private IJSObjectReference? _mod;
+       private DotNetObjectReference<CartSync>? _self;
+       private bool _applyingExternal;
+
+       // Composant invisible : persistance (localStorage chiffré) + synchro entre onglets.
+       protected override async Task OnAfterRenderAsync(bool firstRender)
+       {
+              if (!firstRender) return;
+
+              await LoadAsync();                      // restaure le panier
+              Cart.Changed += OnCartChanged;          // puis écoute les modifications locales
+
+              _mod = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/ShopPulse.Features.Cart/js/tabSync.js");
+              _self = DotNetObjectReference.Create(this);
+              await _mod.InvokeVoidAsync("init", _self);
+       }
+
+       private async Task LoadAsync()
+       {
+              var result = await Storage.GetAsync<List<CartLine>>(Key);
+              if (result is { Success: true, Value: { } lines })
+              {
+                     _applyingExternal = true;            // évite de réécrire ce qu'on vient de lire
+                     try { Cart.Replace(lines); }
+                     finally { _applyingExternal = false; }
+              }
+       }
+
+       private void OnCartChanged()
+       {
+              if (!_applyingExternal) _ = SaveAndPublishAsync();
+       }
+
+       private async Task SaveAndPublishAsync()
+       {
+              try
+              {
+                     await Storage.SetAsync(Key, Cart.State.Lines.ToList()); // d'abord écrire...
+                     if (_mod is not null)
+                            await _mod.InvokeVoidAsync("publish", "cart-changed"); // ...puis prévenir
+              }
+              catch (JSDisconnectedException) { /* circuit fermé */ }
+       }
+
+       [JSInvokable]
+       public Task OnRemoteChange(string type) =>
+              type == "cart-changed" ? InvokeAsync(LoadAsync) : Task.CompletedTask;
+
+       public async ValueTask DisposeAsync()
+       {
+              Cart.Changed -= OnCartChanged;
+              try
+              {
+                     if (_mod is not null)
+                     {
+                            await _mod.InvokeVoidAsync("close");
+                            await _mod.DisposeAsync();
+                     }
+              }
+              catch (JSDisconnectedException) { /* circuit fermé */ }
+              _self?.Dispose();
+       }
+}

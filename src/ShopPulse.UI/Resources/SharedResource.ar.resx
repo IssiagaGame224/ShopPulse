@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="AddToCart" xml:space="preserve"><value>أضف إلى السلة</value></data>
+  <data name="Added" xml:space="preserve"><value>تمت الإضافة ✔</value></data>
+  <data name="SkipToContent" xml:space="preserve"><value>الانتقال إلى المحتوى الرئيسي</value></data>
+  <data name="CartTitle" xml:space="preserve"><value>سلة التسوق</value></data>
+  <data name="Language" xml:space="preserve"><value>اللغة</value></data>
+  <data name="CatalogTitle" xml:space="preserve"><value>الكتالوج</value></data>
+  <data name="Cart.Items.zero" xml:space="preserve"><value>لا مقالات</value></data>
+  <data name="Cart.Items.one" xml:space="preserve"><value>مقال واحد</value></data>
+  <data name="Cart.Items.two" xml:space="preserve"><value>مقالان</value></data>
+  <data name="Cart.Items.few" xml:space="preserve"><value>{0} مقالات</value></data>
+  <data name="Cart.Items.many" xml:space="preserve"><value>{0} مقالة</value></data>
+  <data name="Cart.Items.other" xml:space="preserve"><value>{0} مقال</value></data>
+  <data name="AddedToCart" xml:space="preserve"><value>تمت إضافة المنتج إلى السلة.</value></data>
+</root>

@@ -1,0 +1,51 @@
+@implements IDisposable
+
+<EditForm EditContext="_ctx" OnValidSubmit="SubmitAsync" FormName="shipping">
+       <DataAnnotationsValidator />
+       <ValidationSummary />
+
+       <label for="fn">Nom complet</label>
+       <InputText id="fn" @bind-Value="_model.FullName" autocomplete="name" />
+       <ValidationMessage For="() => _model.FullName" />
+
+       <label for="em">E-mail</label>
+       <InputText id="em" type="email" @bind-Value="_model.Email" autocomplete="email" />
+       <ValidationMessage For="() => _model.Email" />
+
+       <label for="ad">Adresse</label>
+       <InputText id="ad" @bind-Value="_model.Address" autocomplete="street-address" />
+       <ValidationMessage For="() => _model.Address" />
+
+       <label for="pc">Code postal</label>
+       <InputText id="pc" @bind-Value="_model.PostalCode" autocomplete="postal-code" />
+       <ValidationMessage For="() => _model.PostalCode" />
+
+       <button type="submit" disabled="@_submitting">@(_submitting ? "Envoi..." : "Continuer")</button>
+       @if (_ctx.IsModified()) { <small>Modifications non enregistrées</small> }
+</EditForm>
+
+@code {
+       [Parameter] public EventCallback<ShippingForm> Submitted { get; set; }
+
+       private readonly ShippingForm _model = new();
+       private EditContext _ctx = default!;
+       private bool _submitting;
+
+       protected override void OnInitialized()
+       {
+              _ctx = new EditContext(_model);
+              _ctx.OnFieldChanged += OnFieldChanged;
+       }
+
+       private void OnFieldChanged(object? sender, FieldChangedEventArgs e)
+              => Console.WriteLine($"Champ modifié : {e.FieldIdentifier.FieldName}");
+
+       private async Task SubmitAsync()
+       {
+              _submitting = true;
+              try { await Submitted.InvokeAsync(_model); }
+              finally { _submitting = false; }
+       }
+
+       public void Dispose() => _ctx.OnFieldChanged -= OnFieldChanged;
+}

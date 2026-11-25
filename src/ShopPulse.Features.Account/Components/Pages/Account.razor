@@ -1,0 +1,22 @@
+@page "/account"
+@attribute [Authorize]
+
+<PageTitle>Mon compte — ShopPulse</PageTitle>
+<h1>Mon compte</h1>
+
+@* Profil lu depuis les claims du cookie de session (émis par Keycloak via OIDC) :
+   rien n'est stocké côté boutique, l'identité appartient au fournisseur d'identité. *@
+<AuthorizeView>
+       <Authorized>
+              <dl>
+                     <dt>Nom d'utilisateur</dt>
+                     <dd>@context.User.Identity?.Name</dd>
+                     <dt>E-mail</dt>
+                     <dd>@context.User.FindFirst("email")?.Value</dd>
+              </dl>
+              <p><a href="/account/orders">Mes commandes</a></p>
+              <form method="post" action="/logout">
+                     <button type="submit">Se déconnecter</button>
+              </form>
+       </Authorized>
+</AuthorizeView>

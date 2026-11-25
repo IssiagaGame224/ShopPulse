@@ -1,0 +1,49 @@
+@using System.Globalization
+@using ShopPulse.Web.Services
+@inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager Nav
+<!DOCTYPE html>
+@{
+    var lang = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;          // fr | en | ar
+    var dir = CultureInfo.CurrentUICulture.TextInfo.IsRightToLeft ? "rtl" : "ltr";
+    var cspNonce = HttpContextAccessor.HttpContext?.GetCspNonce();             // nonce CSP de la requête
+}
+<html lang="@lang" dir="@dir">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    @* BaseUri inclut le préfixe de langue (/fr/) : les liens relatifs conservent la locale *@
+    <base href="@Nav.BaseUri" />
+    <ResourcePreloader />
+    @* Jetons du design system (RCL ShopPulse.UI), servis sous _content/ *@
+    <link rel="stylesheet" href="@Assets["_content/ShopPulse.UI/tokens.css"]" />
+    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["ShopPulse.Web.styles.css"]" />
+    @* hreflang : une URL par locale + x-default (module 8, concept 19) *@
+    <link rel="alternate" hreflang="fr" href="@(Nav.BaseUri)" />
+    <link rel="alternate" hreflang="en" href="@(Nav.BaseUri.Replace("/" + lang + "/", "/en/"))" />
+    <link rel="alternate" hreflang="ar" href="@(Nav.BaseUri.Replace("/" + lang + "/", "/ar/"))" />
+    <link rel="alternate" hreflang="x-default" href="@(Nav.BaseUri.Replace("/" + lang + "/", "/fr/"))" />
+    <ImportMap />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0b5fff" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet />
+</head>
+
+<body>
+    <Routes />
+    <ReconnectModal />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+    @* Enregistrement du service worker (script classique, hors circuit).
+       Razor omet l'attribut nonce quand la valeur est null (attribut conditionnel). *@
+    <script nonce="@cspNonce">
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("/service-worker.js");
+        }
+    </script>
+</body>
+
+</html>

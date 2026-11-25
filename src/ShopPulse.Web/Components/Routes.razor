@@ -1,0 +1,17 @@
+@inject ModuleCatalog Catalog
+
+@* Les pages des RCL (features + design system) sont découvertes via AdditionalAssemblies.
+   AuthorizeRouteView applique les [Authorize] des pages (compte, back-office) :
+   un visiteur non connecté est redirigé vers /login (challenge OIDC) avec returnUrl. *@
+<Router AppAssembly="typeof(Program).Assembly"
+            AdditionalAssemblies="[typeof(ShopPulse.UI.Marker).Assembly, .. Catalog.Assemblies]"
+            NotFoundPage="typeof(Pages.NotFound)">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                <RedirectToLogin />
+            </NotAuthorized>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>

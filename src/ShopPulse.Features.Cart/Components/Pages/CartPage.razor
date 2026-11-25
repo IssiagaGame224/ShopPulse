@@ -1,0 +1,87 @@
+@page "/cart"
+@rendermode InteractiveServer
+@inherits ObserverComponent
+@using Microsoft.Extensions.Localization
+@using ShopPulse.UI.Resources
+@inject IStringLocalizer<SharedResource> L
+@inject CartStore Cart
+@inject QueryClient Query
+@inject IProductService Products
+
+<PageTitle>@L["CartTitle"] — ShopPulse</PageTitle>
+<h1>@L["CartTitle"]</h1>
+
+@if (!Cart.State.Lines.Any())
+{
+       <p>@L.Plural("Cart.Items", 0). <a href="/catalog">@L["CatalogTitle"]</a></p>
+}
+else
+{
+       <p aria-live="polite" class="results-count">@L.Plural("Cart.Items", Cart.State.ItemCount())</p>
+       <ul class="cart-lines">
+              @foreach (var line in Cart.State.Lines)
+              {
+                     var product = _catalog.ById.TryGetValue(line.ProductId, out var p) ? p : null;
+                     <li @key="line.ProductId">
+                            @if (product is not null)
+                            {
+                                   <img src="@product.ImageUrl" alt="" width="64" height="64" loading="lazy" decoding="async" />
+                            }
+                            <div class="cart-line-info">
+                                   <a href="/product/@line.ProductId">@(product?.Name ?? $"Produit {line.ProductId}")</a>
+                                   @if (product is not null)
+                                   {
+                                          <span class="unit-price">@product.Price.ToString("C") l'unité</span>
+                                   }
+                            </div>
+                            <div class="qty-stepper">
+                                   <button @onclick="() => Cart.SetQuantity(line.ProductId, line.Quantity - 1)"
+                                                 aria-label="Réduire la quantité">−</button>
+                                   <span aria-live="polite">@line.Quantity</span>
+                                   <button @onclick="() => Cart.SetQuantity(line.ProductId, line.Quantity + 1)"
+                                                 aria-label="Augmenter la quantité">+</button>
+                            </div>
+                            <span class="line-total">
+                                   @((product is null ? 0 : product.Price * line.Quantity).ToString("C"))
+                            </span>
+                            <button class="sp-btn sp-btn--danger" @onclick="() => Cart.Remove(line.ProductId)">Retirer</button>
+                     </li>
+              }
+       </ul>
+
+       <aside class="cart-summary" aria-label="Récapitulatif du panier">
+              <dl>
+                     <div>
+                            <dt>Sous-total</dt>
+                            <dd>@Cart.State.Total(_catalog).ToString("C")</dd>
+                     </div>
+                     <div>
+                            <dt>Livraison</dt>
+                            <dd>Calculée à l'étape suivante</dd>
+                     </div>
+                     <div class="total">
+                            <dt>Total</dt>
+                            <dd>@Cart.State.Total(_catalog).ToString("C")</dd>
+                     </div>
+              </dl>
+              <p>
+                     <a class="sp-btn sp-btn--primary" href="checkout">Passer commande</a>
+                     <button @onclick="Cart.Clear">Vider le panier</button>
+              </p>
+       </aside>
+}
+
+@code {
+       private EntityState<Product> _catalog = EntityState<Product>.Empty;
+
+       protected override async Task OnInitializedAsync()
+       {
+              Watch(Cart);
+
+              // Le panier ne stocke que des ids : les données produit viennent du port,
+              // recopiées dans un EntityState local (dérivé, pas partagé avec la feature Catalog).
+              var all = await Query.GetAsync("products:all",
+                     ct => Products.GetAllAsync(ct), TimeSpan.FromSeconds(30));
+              _catalog = EntityState<Product>.Empty.UpsertMany(all, p => p.Id);
+       }
+}

@@ -1,0 +1,46 @@
+@page "/account/orders"
+@attribute [Authorize]
+@inject IOrderHistory Orders
+
+<PageTitle>Mes commandes — ShopPulse</PageTitle>
+<h1>Mes commandes</h1>
+
+@if (_orders is null)
+{
+       <p aria-busy="true">Chargement…</p>
+}
+else if (_orders.Count == 0)
+{
+       <p>Vous n'avez pas encore passé de commande. <a href="/catalog">Voir le catalogue</a></p>
+}
+else
+{
+       <ul>
+              @foreach (var order in _orders)
+              {
+                     <li @key="order.Id">
+                            <a href="/account/orders/@order.Id">
+                                   Commande @order.Id.ToString("N")[..8].ToUpperInvariant()
+                            </a>
+                            — @order.CreatedAt.ToString("dd/MM/yyyy"), @order.Total.ToString("0.00") @order.Currency
+                            (@StatusLabel(order.Status))
+                     </li>
+              }
+       </ul>
+}
+
+@code {
+       private IReadOnlyList<Order>? _orders;
+
+       protected override async Task OnInitializedAsync() =>
+              _orders = await Orders.GetMyOrdersAsync();
+
+       internal static string StatusLabel(OrderStatus status) => status switch
+       {
+              OrderStatus.Pending => "en attente de paiement",
+              OrderStatus.Paid => "payée",
+              OrderStatus.Shipped => "expédiée",
+              OrderStatus.Cancelled => "annulée",
+              _ => status.ToString(),
+       };
+}

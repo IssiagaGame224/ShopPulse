@@ -1,0 +1,241 @@
+@page "/checkout"
+@rendermode InteractiveServer
+@inherits ShopPulse.UI.ObserverComponent
+@implements IAsyncDisposable
+@inject CheckoutMachine Machine
+@inject ICartGateway Cart
+@inject IOrderPlacer OrderPlacer
+@inject IOrderHistory OrderHistory
+@inject IPaymentClient Payments
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<PageTitle>Commande — ShopPulse</PageTitle>
+<h1>Commande</h1>
+
+@* Tunnel (machine à états, module 3) + paiement (phase 6) : « Payer » crée la commande
+   (idempotent) PUIS ouvre la session de paiement. Le montant vient de la commande
+   persistée ; seul le webhook signé fait passer la commande à Paid. Sans clés Stripe
+   configurées, un simulateur dev permet de tester toute la boucle. *@
+
+<ol class="checkout-steps" aria-label="Étapes de commande">
+       @foreach (var step in new[] { CheckoutStep.Cart, CheckoutStep.Shipping, CheckoutStep.Payment })
+       {
+              <li aria-current="@(Machine.Step == step ? "step" : null)">@step</li>
+       }
+</ol>
+
+@if (Machine.Step == CheckoutStep.Shipping)
+{
+       <ShippingFormView Submitted="OnShippingSubmitted" />
+}
+else if (Machine.Step == CheckoutStep.Confirmed && _order is not null)
+{
+       <div role="status" class="summary-box">
+              <p>Commande confirmée. Merci !</p>
+              <p>
+                     Référence : <strong>@_order.Id.ToString("N")[..8].ToUpperInvariant()</strong> —
+                     total @_order.Total.ToString("0.00") @_order.Currency.
+                     Un email de confirmation vient d'être envoyé à @_order.Email.
+              </p>
+              <p><a href="/account/orders">Suivre mes commandes</a></p>
+       </div>
+}
+else if (Machine.Step == CheckoutStep.Failed)
+{
+       <p role="alert">@(_error ?? "La commande a échoué.")</p>
+       <button disabled="@(!Machine.CanFire(CheckoutEvent.Retry) || _placing)"
+                     @onclick="() => Machine.Fire(CheckoutEvent.Retry)">Réessayer</button>
+}
+else if (Machine.Step == CheckoutStep.Payment)
+{
+       @if (_session is null)
+       {
+              <p>@Cart.Lines.Count article(s) — le montant exact est calculé côté serveur.</p>
+              <button disabled="@(!Machine.CanFire(CheckoutEvent.Back) || _placing)"
+                            @onclick="() => Machine.Fire(CheckoutEvent.Back)">Retour</button>
+              <button class="sp-btn sp-btn--primary" disabled="@_placing" @onclick="PayAsync">
+                     @(_placing ? "Commande en cours…" : "Payer")
+              </button>
+       }
+       else if (!_session.Live)
+       {
+              @* Simulateur dev (aucune clé Stripe configurée) *@
+              <div class="summary-box">
+                     <p><strong>Mode démo</strong> — aucune clé Stripe configurée :
+                            le paiement est simulé côté serveur.</p>
+                     <p>Total à payer : <strong>@_order!.Total.ToString("0.00") @_order.Currency</strong></p>
+                     <button class="sp-btn sp-btn--primary" disabled="@_placing" @onclick="FakePayAsync">
+                            @( _placing ? "Paiement en cours…" : "Simuler le paiement (démo)")
+                     </button>
+              </div>
+       }
+       else
+       {
+              @* Stripe : le Payment Element est monté par JS interop *@
+              <div class="summary-box">
+                     <p>Total à payer : <strong>@_order!.Total.ToString("0.00") @_order.Currency</strong></p>
+                     <div id="stripe-payment-element"></div>
+                     @if (_paymentError is not null)
+                     {
+                            <p role="alert">@_paymentError</p>
+                     }
+                     <button class="sp-btn sp-btn--primary" disabled="@(_placing || !_elementMounted)"
+                                   @onclick="ConfirmStripeAsync">
+                            @(_placing ? "Paiement en cours…" : "Confirmer le paiement")
+                     </button>
+              </div>
+       }
+       @if (_error is not null && _session is null)
+       {
+              <p role="alert">@_error</p>
+       }
+}
+else
+{
+       <p>@Cart.Lines.Count article(s) dans votre panier.</p>
+       <button disabled="@(!Machine.CanFire(CheckoutEvent.Next) || Cart.Lines.Count == 0)"
+                     @onclick="() => Machine.Fire(CheckoutEvent.Next)">Suivant</button>
+}
+
+@code {
+       private ShippingForm? _shipping;
+       private string? _idempotencyKey;
+       private Order? _order;
+       private PaymentSession? _session;
+       private string? _error;
+       private string? _paymentError;
+       private bool _placing;
+       private bool _elementMounted;
+       private IJSObjectReference? _stripeModule;
+
+       protected override void OnInitialized() => Watch(Machine);
+
+       private void OnShippingSubmitted(ShippingForm form)
+       {
+              _shipping = form;
+              // Une clé PAR TENTATIVE d'achat, stable pendant les reprises (retry réseau,
+              // double-clic) : le serveur rejoue la commande existante au lieu d'en créer une.
+              _idempotencyKey = Guid.NewGuid().ToString("N");
+              Machine.Fire(CheckoutEvent.Next);
+       }
+
+       /// <summary>« Payer » : crée la commande (idempotent) puis ouvre la session de paiement.
+       /// La commande reste Pending tant que le webhook (ou le simulateur) ne l'a pas confirmée.</summary>
+       private async Task PayAsync()
+       {
+              if (_placing || _shipping is null || _idempotencyKey is null) return;
+              _placing = true;
+              _error = null;
+              try
+              {
+                     var placement = await OrderPlacer.PlaceOrderAsync(new(
+                            _shipping.Email, _shipping.FullName, _shipping.Address, _shipping.PostalCode,
+                            [.. Cart.Lines.Select(l => new CartLineRequest(l.ProductId, l.Quantity))],
+                            _idempotencyKey));
+
+                     if (placement.Order is null)
+                     {
+                            _error = placement.Message;
+                            Machine.Fire(CheckoutEvent.PaymentFailed);
+                            return;
+                     }
+
+                     _order = placement.Order;
+                     _session = await Payments.CreateSessionAsync(_order.Id);
+                     if (_session is null)
+                     {
+                            _error = "Impossible d'ouvrir la session de paiement. Réessayez.";
+                            _order = null;
+                     }
+              }
+              finally
+              {
+                     _placing = false;
+              }
+       }
+
+       /// <summary>Montage du Payment Element APRÈS le rendu (jamais pendant le prerender).</summary>
+       protected override async Task OnAfterRenderAsync(bool firstRender)
+       {
+              if (_session is { Live: true, PublishableKey: not null } && !_elementMounted)
+              {
+                     _stripeModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                            "import", "./js/stripe-payment.js");
+                     await _stripeModule.InvokeVoidAsync("mountPaymentElement",
+                            _session.PublishableKey, _session.ClientSecret, "stripe-payment-element");
+                     _elementMounted = true;
+              }
+       }
+
+       private async Task ConfirmStripeAsync()
+       {
+              if (_placing || _stripeModule is null) return;
+              _placing = true;
+              _paymentError = null;
+              try
+              {
+                     var error = await _stripeModule.InvokeAsync<string?>("confirmPayment",
+                            Nav.ToAbsoluteUri("/checkout").ToString());
+                     if (error is not null)
+                     {
+                            _paymentError = error;
+                            return;
+                     }
+                     // La confirmation navigateur n'est pas une preuve : on attend que le
+                     // webhook signé fasse passer la commande à Paid (sondage ~15 s max).
+                     if (await WaitForPaidAsync())
+                     {
+                            Cart.Clear();
+                            Machine.Fire(CheckoutEvent.Pay);
+                     }
+                     else
+                     {
+                            _paymentError = "Paiement en cours de confirmation — retrouvez votre commande dans « Mes commandes ».";
+                     }
+              }
+              finally
+              {
+                     _placing = false;
+              }
+       }
+
+       private async Task FakePayAsync()
+       {
+              if (_placing || _order is null) return;
+              _placing = true;
+              try
+              {
+                     if (await Payments.FakeConfirmAsync(_order.Id))
+                     {
+                            Cart.Clear();
+                            Machine.Fire(CheckoutEvent.Pay);
+                     }
+                     else
+                     {
+                            _paymentError = "La confirmation simulée a échoué.";
+                     }
+              }
+              finally
+              {
+                     _placing = false;
+              }
+       }
+
+       private async Task<bool> WaitForPaidAsync()
+       {
+              for (var i = 0; i < 15; i++)
+              {
+                     var order = await OrderHistory.GetByIdAsync(_order!.Id);
+                     if (order?.Status == OrderStatus.Paid) return true;
+                     await Task.Delay(1000);
+              }
+              return false;
+       }
+
+       public async ValueTask DisposeAsync()
+       {
+              if (_stripeModule is not null)
+                     await _stripeModule.DisposeAsync();
+       }
+}

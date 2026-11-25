@@ -1,0 +1,11 @@
+@inherits ObserverComponent
+@implements IDisposable
+@inject CartStore Cart
+
+<a href="/cart" aria-label="Panier : @Count articles"><span class="cart-badge">🛒 @Count</span></a>
+
+@code {
+       private int Count => Cart.State.ItemCount(); // dérivé du panier
+
+       protected override void OnInitialized() => Watch(Cart);
+}

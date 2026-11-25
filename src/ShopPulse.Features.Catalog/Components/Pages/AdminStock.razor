@@ -1,0 +1,69 @@
+@page "/admin/stock"
+@attribute [Authorize(Policy = "CanManageStock")]
+@rendermode InteractiveServer
+@inject IStockAdmin StockAdmin
+@inject IProductService Products
+
+<PageTitle>Gestion du stock — ShopPulse</PageTitle>
+<h1>Gestion du stock</h1>
+
+<AuthorizeView>
+       <Authorized>
+              <p>Bonjour @context.User.Identity?.Name — modifiez un stock : la fiche produit se met à jour en temps réel.</p>
+       </Authorized>
+       <NotAuthorized>
+              <p>Accès refusé.</p>
+       </NotAuthorized>
+</AuthorizeView>
+
+@if (_error is not null)
+{
+       <p role="alert">@_error</p>
+}
+@if (_ok)
+{
+       <p role="status">Stock mis à jour et diffusé aux clients connectés.</p>
+}
+
+<EditForm Model="_form" OnValidSubmit="SubmitAsync" FormName="set-stock">
+       <DataAnnotationsValidator />
+       <label for="pid">Produit</label>
+       <InputNumber id="pid" @bind-Value="_form.ProductId" min="1" />
+       <ValidationMessage For="() => _form.ProductId" />
+
+       <label for="stock">Nouveau stock</label>
+       <InputNumber id="stock" @bind-Value="_form.Stock" min="0" />
+       <ValidationMessage For="() => _form.Stock" />
+
+       <button type="submit" disabled="@_busy">@(_busy ? "Envoi..." : "Appliquer")</button>
+</EditForm>
+
+@code {
+       private readonly FormModel _form = new();
+       private string? _error;
+       private bool _ok, _busy;
+
+       private async Task SubmitAsync()
+       {
+              _error = null; _ok = false; _busy = true;
+              try
+              {
+                     await StockAdmin.SetStockAsync(_form.ProductId, _form.Stock);
+                     _ok = true;
+              }
+              catch (Exception)
+              {
+                     _error = "Le service est momentanément indisponible. Réessayez dans un instant.";
+              }
+              finally { _busy = false; }
+       }
+
+       public sealed class FormModel
+       {
+              [System.ComponentModel.DataAnnotations.Range(1, 100_000)]
+              public int ProductId { get; set; } = 1;
+
+              [System.ComponentModel.DataAnnotations.Range(0, 100_000)]
+              public int Stock { get; set; }
+       }
+}

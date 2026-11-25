@@ -1,0 +1,233 @@
+html, body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+a, .btn-link {
+    color: #006bb7;
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: #1b6ec2;
+    border-color: #1861ac;
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+.content {
+    padding-top: 1.1rem;
+}
+
+h1:focus {
+    outline: none;
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+/* Grille du catalogue : pistes dimensionnées par le contenu (les squelettes réservent
+   déjà l'espace pendant le streaming — un min-height étirerait les cartes) */
+.grid { display: grid; gap: 1rem; align-items: start;
+              grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+
+.card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+/* ratio fixe : la géométrie est connue avant le chargement de l'image (anti-CLS) */
+.card img { aspect-ratio: 1 / 1; width: 100%; height: auto; }
+
+.card .out {
+    color: #b32121;
+    font-weight: bold;
+}
+
+.card .price { font-weight: bold; }
+
+/* Squelette avec la même géométrie que les vraies cartes */
+.skeleton { height: 320px; border-radius: 8px;
+                      background: linear-gradient(90deg,#eee 25%,#f6f6f6 50%,#eee 75%);
+                      background-size: 200% 100%; animation: shimmer 1.2s infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* L'UI de reconnexion Blazor ne doit pas pousser le contenu (anti-CLS) */
+#components-reconnect-modal { position: fixed; inset: 0; }
+
+/* Conteneur de la liste virtualisée : hauteur fixe obligatoire */
+.viewport { height: 80vh; overflow-y: auto; }
+
+/* Badge panier */
+.cart-badge { font-size: 1.1rem; text-decoration: none; }
+
+/* Lignes du panier */
+.cart-lines { list-style: none; padding: 0; }
+.cart-lines li { display: flex; gap: .5rem; align-items: center; margin-block-end: .5rem; }
+
+/* Module 8 — Accessibilité */
+
+/* Lien d'évitement : premier élément focalisable, visible au focus (WCAG 2.4.1) */
+.skip-link {
+   position: absolute; inset-inline-start: .5rem; top: -4rem;
+   background: #000; color: #fff; padding: .5rem 1rem; z-index: 1000;
+}
+.skip-link:focus { top: .5rem; }
+
+/* Texte lu par les lecteurs d'écran, invisible à l'écran */
+.visually-hidden {
+   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* Focus toujours visible (WCAG 2.4.7 et 2.4.11) — jamais outline:none sans remplacement */
+:focus-visible {
+   outline: 3px solid #0b5fff;
+   outline-offset: 2px;
+}
+
+/* Mouvement réduit (WCAG 2.3.3) : le squelette shimmer devient statique */
+@media (prefers-reduced-motion: reduce) {
+   *, *::before, *::after {
+       animation-duration: 0.01ms !important;
+       animation-iteration-count: 1 !important;
+       transition-duration: 0.01ms !important;
+       scroll-behavior: auto !important;
+   }
+}
+
+/* Sélecteur de langue */
+.lang-switcher ul { display: flex; gap: .5rem; list-style: none; margin: 0; padding: 0; }
+.lang-switcher a[aria-current="true"] { font-weight: bold; text-decoration: underline; }
+
+/* Icônes directionnelles : à inverser en RTL (exemple) */
+[dir="rtl"] .icon-chevron { transform: scaleX(-1); }
+
+/* ===== Boutique e-commerce (refonte design) ===== */
+
+/* Carte produit enrichie : badge promo, prix barré, survol */
+.card { position: relative; background: var(--sp-color-surface);
+        box-shadow: var(--sp-shadow); border: 1px solid var(--sp-color-border);
+        transition: box-shadow .15s ease; display: flex; flex-direction: column; }
+.card:hover { box-shadow: 0 4px 12px rgb(0 0 0 / .18); }
+.card h3 { font-size: 1rem; margin-block: var(--sp-space-2); line-height: 1.3; }
+.card .price { font-size: 1.15rem; color: var(--sp-color-text); margin-block: var(--sp-space-1); }
+.card .stock-ok { color: var(--sp-color-success); font-size: .9rem; }
+.card .out { color: var(--sp-color-promo); font-weight: bold; font-size: .9rem; }
+.card a { margin-block-start: auto; }
+
+/* Prix barré + badge promo (contrastes AA dans les deux thèmes) */
+.old-price { color: var(--sp-color-muted); text-decoration: line-through;
+             font-weight: normal; font-size: .9em; margin-inline-end: var(--sp-space-2); }
+.badge-promo { position: absolute; inset-inline-start: var(--sp-space-2); top: var(--sp-space-2);
+               background: var(--sp-color-promo); color: #fff; font-weight: bold;
+               font-size: .85rem; padding: var(--sp-space-1) var(--sp-space-2);
+               border-radius: var(--sp-radius); z-index: 1; }
+.badge-promo--inline { position: static; display: inline-block; margin-inline-start: var(--sp-space-2); }
+
+/* Fil d'Ariane (fiche produit) */
+.breadcrumb ol { display: flex; flex-wrap: wrap; gap: var(--sp-space-1);
+                 list-style: none; padding: 0; font-size: .9rem; color: var(--sp-color-muted); }
+.breadcrumb li + li::before { content: "›"; margin-inline-end: var(--sp-space-1); }
+.breadcrumb [aria-current="page"] { color: var(--sp-color-text); font-weight: 600; }
+
+/* Fiche produit : deux colonnes (visuel | informations) */
+.product-hero { display: grid; gap: var(--sp-space-8); align-items: start;
+                grid-template-columns: minmax(280px, 480px) 1fr; }
+@media (max-width: 800px) { .product-hero { grid-template-columns: 1fr; } }
+.product-hero img { width: 100%; height: auto; aspect-ratio: 1/1; border-radius: var(--sp-radius);
+                    border: 1px solid var(--sp-color-border); background: var(--sp-color-surface); }
+.product-info .sku { color: var(--sp-color-muted); font-size: .85rem; }
+.product-price { font-size: 1.8rem; font-weight: bold; margin-block: var(--sp-space-3); }
+.product-price .old-price { font-size: 1.1rem; }
+.product-actions { display: flex; align-items: center; gap: var(--sp-space-4);
+                   margin-block: var(--sp-space-4); }
+
+/* Caractéristiques techniques (liste à puces fiche produit) */
+.specs { background: var(--sp-color-surface); border: 1px solid var(--sp-color-border);
+         border-radius: var(--sp-radius); padding: var(--sp-space-4) var(--sp-space-6);
+         margin-block: var(--sp-space-6); }
+.specs ul { margin: 0; padding-inline-start: 1.2rem; }
+.specs li { margin-block: var(--sp-space-1); }
+
+/* Accueil vitrine */
+.hero { background: linear-gradient(120deg, var(--sp-color-primary), #083d9e);
+        color: #fff; border-radius: var(--sp-radius); padding: var(--sp-space-8);
+        margin-block-end: var(--sp-space-8); }
+.hero h1 { margin-block-start: 0; font-size: 2rem; }
+.hero p { font-size: 1.1rem; max-width: 40rem; }
+.hero .sp-btn { background: #fff; color: var(--sp-color-primary); font-weight: bold;
+                display: inline-block; text-decoration: none; margin-block-start: var(--sp-space-3); }
+.category-tiles { display: grid; gap: var(--sp-space-4); list-style: none; padding: 0;
+                  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+.category-tiles a { display: block; text-align: center; padding: var(--sp-space-6) var(--sp-space-4);
+                    background: var(--sp-color-surface); border: 1px solid var(--sp-color-border);
+                    border-radius: var(--sp-radius); font-weight: 600; text-decoration: none;
+                    color: var(--sp-color-text); box-shadow: var(--sp-shadow); }
+.category-tiles a:hover { border-color: var(--sp-color-primary); color: var(--sp-color-primary); }
+.home-section { margin-block: var(--sp-space-8); }
+
+/* Barre de filtres du catalogue */
+.filters { display: flex; flex-wrap: wrap; align-items: end; gap: var(--sp-space-3);
+           background: var(--sp-color-surface); border: 1px solid var(--sp-color-border);
+           border-radius: var(--sp-radius); padding: var(--sp-space-3) var(--sp-space-4);
+           margin-block-end: var(--sp-space-4); }
+.filters label { font-size: .85rem; color: var(--sp-color-muted); display: block; }
+.filters input, .filters select { padding: var(--sp-space-2); border: 1px solid var(--sp-color-border);
+                                  border-radius: var(--sp-radius); background: var(--sp-color-bg);
+                                  color: var(--sp-color-text); }
+.results-count { color: var(--sp-color-muted); font-size: .9rem; }
+
+/* Panier : lignes détaillées + bloc total */
+.cart-lines li { background: var(--sp-color-surface); border: 1px solid var(--sp-color-border);
+                 border-radius: var(--sp-radius); padding: var(--sp-space-3);
+                 gap: var(--sp-space-3); }
+.cart-lines img { width: 64px; height: 64px; border-radius: var(--sp-radius);
+                  border: 1px solid var(--sp-color-border); }
+.cart-line-info { flex: 1; min-width: 0; }
+.cart-line-info .unit-price { color: var(--sp-color-muted); font-size: .85rem; display: block; }
+.qty-stepper { display: inline-flex; align-items: center; gap: var(--sp-space-2); }
+.qty-stepper button { width: 2rem; height: 2rem; border: 1px solid var(--sp-color-border);
+                      background: var(--sp-color-bg); color: var(--sp-color-text);
+                      border-radius: var(--sp-radius); cursor: pointer; font-size: 1rem; }
+.line-total { font-weight: bold; min-width: 5.5rem; text-align: end; }
+.cart-summary, .summary-box { background: var(--sp-color-surface); border: 1px solid var(--sp-color-border);
+        border-radius: var(--sp-radius); padding: var(--sp-space-4) var(--sp-space-6);
+        max-width: 26rem; margin-block-start: var(--sp-space-6); }
+.cart-summary dl, .summary-box dl { margin: 0; }
+.cart-summary dl > div, .summary-box dl > div { display: flex; justify-content: space-between;
+        gap: var(--sp-space-4); margin-block: var(--sp-space-1); }
+.cart-summary dd, .summary-box dd { margin: 0; }
+.cart-summary .total, .summary-box .total { font-size: 1.25rem; font-weight: bold;
+        border-block-start: 1px solid var(--sp-color-border); padding-block-start: var(--sp-space-2); }
+
+/* Pagination du catalogue */
+nav[aria-label="Pagination"] { display: flex; gap: var(--sp-space-4); align-items: center;
+        margin-block-start: var(--sp-space-4); }
+
+/* Tunnel de commande : étapes en pastilles */
+.checkout-steps { display: flex; gap: var(--sp-space-2); list-style: none; padding: 0;
+                  counter-reset: step; margin-block-end: var(--sp-space-6); }
+.checkout-steps li { counter-increment: step; padding: var(--sp-space-2) var(--sp-space-4);
+                     border-radius: 2rem; border: 1px solid var(--sp-color-border);
+                     color: var(--sp-color-muted); font-size: .9rem; }
+.checkout-steps li::before { content: counter(step) ". "; font-weight: bold; }
+.checkout-steps li[aria-current="step"] { border-color: var(--sp-color-primary);
+                     color: var(--sp-color-primary); font-weight: 600; }
+
+/* Formulaires boutique (livraison, admin) : champs alignés */
+form p { max-width: 28rem; }
+form label { display: block; font-size: .9rem; color: var(--sp-color-muted);
+             margin-block-end: var(--sp-space-1); }
+form input, form select, form textarea { width: 100%; padding: var(--sp-space-2);
+             border: 1px solid var(--sp-color-border); border-radius: var(--sp-radius);
+             background: var(--sp-color-bg); color: var(--sp-color-text); font: inherit; }
+
+/* Tableaux (back-office, commandes) */
+table { border-collapse: collapse; width: 100%; background: var(--sp-color-surface); }
+th, td { text-align: start; padding: var(--sp-space-2) var(--sp-space-3);
+         border-block-end: 1px solid var(--sp-color-border); }
+thead th { border-block-end: 2px solid var(--sp-color-border); }

@@ -1,0 +1,23 @@
+@* Îlot interactif : ajoute au panier via le port partagé ICartGateway,
+   sans connaître la feature Cart. Annonce l'ajout aux lecteurs d'écran. *@
+@inject ICartGateway Cart
+@inject ILiveAnnouncer Announcer
+@inject IStringLocalizer<SharedResource> L
+
+<button class="sp-btn sp-btn--primary" @onclick="Add" disabled="@_justAdded">
+       @(_justAdded ? L["Added"] : L["AddToCart"])
+</button>
+
+@code {
+       [Parameter] public int ProductId { get; set; }
+       private bool _justAdded;
+
+       private async Task Add()        // état local : retour du libellé
+       {
+              Cart.Add(ProductId);
+              Announcer.Announce(L["AddedToCart"]);
+              _justAdded = true;
+              await Task.Delay(1200);
+              _justAdded = false;
+       }
+}

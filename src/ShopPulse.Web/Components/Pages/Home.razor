@@ -1,0 +1,76 @@
+@page "/"
+@attribute [StreamRendering]
+@inject IProductService Products
+@inject QueryClient Query
+
+<PageTitle>ShopPulse — Boutique high-tech</PageTitle>
+
+<section class="hero">
+       <h1>Le meilleur de la high-tech, livré chez vous</h1>
+       <p>Claviers, écrans et audio sélectionnés : prix nets, stock en temps réel,
+          expédition soignée. Boutique multilingue, accessible et sécurisée.</p>
+       <a class="sp-btn" href="/catalog">Découvrir le catalogue</a>
+</section>
+
+@if (_categories.Count > 0)
+{
+       <section class="home-section" aria-labelledby="cat-title">
+              <h2 id="cat-title">Nos catégories</h2>
+              <ul class="category-tiles">
+                     @foreach (var c in _categories)
+                     {
+                            <li><a href="/catalog?category=@Uri.EscapeDataString(c)">@c</a></li>
+                     }
+              </ul>
+       </section>
+}
+
+@if (_promos.Count > 0)
+{
+       <section class="home-section" aria-labelledby="promo-title">
+              <h2 id="promo-title">Promotions</h2>
+              <div class="grid">
+                     @foreach (var p in _promos)
+                     {
+                            <ProductCard @key="p.Id" ImageUrl="@p.ImageUrl" Name="@p.Name"
+                                                Price="@p.Price" OldPrice="@p.OldPrice" Stock="@p.Stock">
+                                   <a href="/product/@p.Id">Voir</a>
+                            </ProductCard>
+                     }
+              </div>
+       </section>
+}
+
+@if (_new.Count > 0)
+{
+       <section class="home-section" aria-labelledby="new-title">
+              <h2 id="new-title">Nouveautés</h2>
+              <div class="grid">
+                     @foreach (var p in _new)
+                     {
+                            <ProductCard @key="p.Id" ImageUrl="@p.ImageUrl" Name="@p.Name"
+                                                Price="@p.Price" OldPrice="@p.OldPrice" Stock="@p.Stock">
+                                   <a href="/product/@p.Id">Voir</a>
+                            </ProductCard>
+                     }
+              </div>
+       </section>
+}
+
+@code {
+       private IReadOnlyList<string> _categories = [];
+       private IReadOnlyList<Product> _promos = [];
+       private IReadOnlyList<Product> _new = [];
+
+       protected override async Task OnInitializedAsync()
+       {
+              _categories = await Query.GetAsync("categories:all",
+                     ct => Products.GetCategoriesAsync(ct), TimeSpan.FromMinutes(5));
+
+              var all = await Query.GetAsync("products:all",
+                     ct => Products.GetAllAsync(ct), TimeSpan.FromSeconds(30));
+
+              _promos = [.. all.Where(p => p.IsOnSale && p.Stock > 0).Take(4)];
+              _new = [.. all.OrderByDescending(p => p.Id).Take(4)];
+       }
+}

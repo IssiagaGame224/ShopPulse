@@ -1,0 +1,115 @@
+@page "/admin/orders"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = "CanManageStock")]
+@inject IOrderAdmin Orders
+
+<PageTitle>Commandes — Back-office ShopPulse</PageTitle>
+<h1>Commandes</h1>
+
+<nav aria-label="Back-office">
+       <a href="/admin/orders" aria-current="page">Commandes</a> · <a href="/admin/products">Produits</a>
+</nav>
+
+<p>
+       <label for="filtre">Statut :</label>
+       <select id="filtre" @bind="_filter" @bind:after="LoadAsync">
+              <option value="">Toutes</option>
+              <option value="Pending">En attente</option>
+              <option value="Paid">Payées</option>
+              <option value="Shipped">Expédiées</option>
+              <option value="Cancelled">Annulées</option>
+       </select>
+</p>
+
+@if (_orders is null)
+{
+       <p aria-busy="true">Chargement…</p>
+}
+else if (_orders.Count == 0)
+{
+       <p>Aucune commande pour ce filtre.</p>
+}
+else
+{
+       <table>
+              <thead>
+                     <tr>
+                            <th>Référence</th><th>Date</th><th>Client</th>
+                            <th>Total</th><th>Statut</th><th>Actions</th>
+                     </tr>
+              </thead>
+              <tbody>
+                     @foreach (var order in _orders)
+                     {
+                            <tr @key="order.Id">
+                                   <td>@order.Id.ToString("N")[..8].ToUpperInvariant()</td>
+                                   <td>@order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                   <td>@order.FullName<br /><small>@order.Email</small></td>
+                                   <td>@order.Total.ToString("0.00") @order.Currency</td>
+                                   <td>@Label(order.Status)</td>
+                                   <td>
+                                          @if (order.Status == OrderStatus.Pending)
+                                          {
+                                                 <button disabled="@_busy" @onclick="() => SetStatusAsync(order.Id, OrderStatus.Paid)">Marquer payée</button>
+                                          }
+                                          @if (order.Status == OrderStatus.Paid)
+                                          {
+                                                 <button disabled="@_busy" @onclick="() => SetStatusAsync(order.Id, OrderStatus.Shipped)">Marquer expédiée</button>
+                                          }
+                                          @if (order.Status is OrderStatus.Pending or OrderStatus.Paid)
+                                          {
+                                                 <button disabled="@_busy" @onclick="() => SetStatusAsync(order.Id, OrderStatus.Cancelled)">Annuler</button>
+                                          }
+                                   </td>
+                            </tr>
+                     }
+              </tbody>
+       </table>
+}
+
+@if (_error is not null)
+{
+       <p role="alert">@_error</p>
+}
+
+@code {
+       private IReadOnlyList<Order>? _orders;
+       private string _filter = "";
+       private string? _error;
+       private bool _busy;
+
+       protected override Task OnInitializedAsync() => LoadAsync();
+
+       private async Task LoadAsync()
+       {
+              OrderStatus? status = Enum.TryParse<OrderStatus>(_filter, out var s) ? s : null;
+              _orders = await Orders.GetOrdersAsync(status);
+       }
+
+       private async Task SetStatusAsync(Guid id, OrderStatus status)
+       {
+              _busy = true;
+              _error = null;
+              try
+              {
+                     var result = await Orders.SetStatusAsync(id, status);
+                     if (result.Error is not null) _error = result.Error;
+                     await LoadAsync();
+              }
+              finally
+              {
+                     _busy = false;
+              }
+       }
+
+       // Libellés en clair (dupliqués de la feature Account : 6 lignes, pas de
+       // dépendance inter-features pour ça).
+       internal static string Label(OrderStatus status) => status switch
+       {
+              OrderStatus.Pending => "en attente",
+              OrderStatus.Paid => "payée",
+              OrderStatus.Shipped => "expédiée",
+              OrderStatus.Cancelled => "annulée",
+              _ => status.ToString(),
+       };
+}

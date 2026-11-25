@@ -1,0 +1,40 @@
+@* Îlot interactif : affiche le stock en temps réel via StockFeed (hub SignalR de l'API).
+   Remplace l'affichage statique : une modification côté API se reflète sans rechargement. *@
+@implements IAsyncDisposable
+@inject IStockFeed Feed
+
+<p class="@(_stock == 0 ? "out" : "")" aria-live="polite">
+       @(_stock == 0 ? "Rupture" : $"{_stock} en stock")
+</p>
+
+@code {
+       [Parameter, EditorRequired] public int ProductId { get; set; }
+       [Parameter] public int Stock { get; set; }
+
+       private int _stock;
+
+       protected override void OnInitialized() => _stock = Stock;
+
+       protected override async Task OnInitializedAsync()
+       {
+              Feed.StockChanged += OnStockChanged;
+              await Feed.StartAsync();
+              await Feed.SubscribeAsync(ProductId);
+       }
+
+       private void OnStockChanged(int productId, int stock)
+       {
+              if (productId == ProductId)
+              {
+                     _stock = stock;
+                     _ = InvokeAsync(StateHasChanged);
+              }
+       }
+
+       public async ValueTask DisposeAsync()
+       {
+              Feed.StockChanged -= OnStockChanged;
+              try { await Feed.UnsubscribeAsync(ProductId); }
+              catch (Exception) { /* connexion déjà fermée */ }
+       }
+}

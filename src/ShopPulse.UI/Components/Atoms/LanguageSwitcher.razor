@@ -1,0 +1,35 @@
+@using Microsoft.Extensions.Localization
+@using ShopPulse.UI.Resources
+@inject IStringLocalizer<SharedResource> L
+@inject NavigationManager Nav
+
+@* Chaque nom de langue est écrit dans sa propre langue avec son attribut lang (WCAG 3.1.2).
+   Pas de drapeaux : une langue n'est pas un pays. *@
+<nav aria-label="@L["Language"]" class="lang-switcher">
+       <ul>
+              @foreach (var (code, name) in _languages)
+              {
+                     <li>
+                            <a href="@UrlFor(code)" lang="@(code)" hreflang="@(code)"
+                                   aria-current="@AriaCurrent(code)">@name</a>
+                     </li>
+              }
+       </ul>
+</nav>
+
+@code {
+       private static readonly (string code, string name)[] _languages =
+              [("fr", "Français"), ("en", "English"), ("ar", "العربية")];
+
+       private string Current => System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+
+       private string? AriaCurrent(string code) => Current == code ? "true" : null;
+
+       private string UrlFor(string lang)
+       {
+              var path = new Uri(Nav.Uri).AbsolutePath;          // ex. /fr/catalog
+              var rest = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+              var tail = rest.Length > 1 ? "/" + string.Join('/', rest.Skip(1)) : "/";
+              return "/" + lang + tail;                          // /en/catalog, /ar/catalog…
+       }
+}

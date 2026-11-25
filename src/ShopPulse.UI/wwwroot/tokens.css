@@ -1,0 +1,50 @@
+:root {
+   --sp-color-primary: #0b5fff;
+   --sp-color-text: #1a1d23;
+   --sp-color-surface: #ffffff;
+   --sp-color-bg: #ffffff;
+   --sp-color-muted: #595959;            /* texte secondaire : 7:1 sur blanc (AA) */
+   --sp-color-promo: #b32121;            /* badges promo : 7,4:1 avec texte blanc */
+   --sp-color-success: #1a7f37;          /* stock disponible : 4,6:1 sur blanc */
+   --sp-color-border: #dddddd;
+   --sp-space-1: .25rem; --sp-space-2: .5rem; --sp-space-3: .75rem;
+   --sp-space-4: 1rem; --sp-space-6: 1.5rem; --sp-space-8: 2rem;
+   --sp-radius: .5rem;
+   --sp-shadow: 0 1px 3px rgb(0 0 0 / .12);
+   --sp-font: system-ui, sans-serif;
+}
+
+:root[data-theme="dark"] {
+   --sp-color-text: #e8eaed;
+   --sp-color-bg: #121418;
+   --sp-color-surface: #1b1e24;
+   --sp-color-muted: #a8adb5;
+   --sp-color-border: #3a3f47;
+}
+
+@media (prefers-color-scheme: dark) {
+   :root:not([data-theme="light"]) {
+       --sp-color-text: #e8eaed;
+       --sp-color-bg: #121418;
+       --sp-color-surface: #1b1e24;
+       --sp-color-muted: #a8adb5;
+       --sp-color-border: #3a3f47;
+   }
+}
+
+body {
+   background: var(--sp-color-bg);
+   color: var(--sp-color-text);
+   font-family: var(--sp-font);
+}
+
+/* Boutons du design system */
+.sp-btn {
+   padding: var(--sp-space-2) var(--sp-space-4);
+   border-radius: var(--sp-radius);
+   border: 1px solid transparent;
+   cursor: pointer;
+}
+.sp-btn--primary { background: var(--sp-color-primary); color: #fff; }
+.sp-btn--secondary { background: transparent; color: var(--sp-color-primary); border-color: var(--sp-color-primary); }
+.sp-btn--danger { background: #b32121; color: #fff; }

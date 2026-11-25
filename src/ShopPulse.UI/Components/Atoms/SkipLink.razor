@@ -1,0 +1,18 @@
+@using Microsoft.Extensions.Localization
+@using ShopPulse.UI.Resources
+@inject IStringLocalizer<SharedResource> L
+
+@* Premier élément focalisable de la page ; visible au focus.
+   href vers la page courante + #main car <base href> inclut le préfixe de langue. *@
+<a class="skip-link" href="@(_here)#main" data-enhance-nav="false">@L["SkipToContent"]</a>
+
+@code {
+       [Inject] private NavigationManager Nav { get; set; } = default!;
+       private string _here = "/";
+
+       protected override void OnInitialized()
+       {
+              var uri = Nav.Uri.Split('#')[0];                 // page courante (préfixe inclus)
+              _here = new Uri(uri).PathAndQuery;
+       }
+}

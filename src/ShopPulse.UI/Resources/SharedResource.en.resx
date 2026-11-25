@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="AddToCart" xml:space="preserve"><value>Add to cart</value></data>
+  <data name="Added" xml:space="preserve"><value>Added ✔</value></data>
+  <data name="SkipToContent" xml:space="preserve"><value>Skip to main content</value></data>
+  <data name="CartTitle" xml:space="preserve"><value>Your cart</value></data>
+  <data name="Language" xml:space="preserve"><value>Language</value></data>
+  <data name="CatalogTitle" xml:space="preserve"><value>Catalog</value></data>
+  <data name="Cart.Items.zero" xml:space="preserve"><value>{0} items</value></data>
+  <data name="Cart.Items.one" xml:space="preserve"><value>{0} item</value></data>
+  <data name="Cart.Items.other" xml:space="preserve"><value>{0} items</value></data>
+  <data name="AddedToCart" xml:space="preserve"><value>Product added to cart.</value></data>
+</root>

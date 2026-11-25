@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ShopPulse.Domain\ShopPulse.Domain.csproj" />
+    <ProjectReference Include="..\ShopPulse.SharedKernel\ShopPulse.SharedKernel.csproj" />
+    <ProjectReference Include="..\ShopPulse.Application\ShopPulse.Application.csproj" />
+    <ProjectReference Include="..\ShopPulse.Infrastructure\ShopPulse.Infrastructure.csproj" />
+    <ProjectReference Include="..\ShopPulse.Modularity\ShopPulse.Modularity.csproj" />
+    <ProjectReference Include="..\ShopPulse.UI\ShopPulse.UI.csproj" />
+    <ProjectReference Include="..\ShopPulse.Features.Catalog\ShopPulse.Features.Catalog.csproj" />
+    <ProjectReference Include="..\ShopPulse.Features.Cart\ShopPulse.Features.Cart.csproj" />
+    <ProjectReference Include="..\ShopPulse.Features.Checkout\ShopPulse.Features.Checkout.csproj" />
+    <ProjectReference Include="..\ShopPulse.Features.Account\ShopPulse.Features.Account.csproj" />
+    <ProjectReference Include="..\ShopPulse.Features.Admin\ShopPulse.Features.Admin.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <UserSecretsId>b561453b-ed6b-42f0-8650-7eccc7eb3d5a</UserSecretsId>
+  </PropertyGroup>
+
+</Project>
