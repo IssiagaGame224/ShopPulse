@@ -109,7 +109,7 @@ tests/
   ShopPulse.E2E/                 # Playwright : checkout, compte, admin, refresh
                                  # token (4 tests + utilitaire Screenshots)
   ShopPulse.A11y/                # axe-core : 5 pages × fr/en/ar (RTL inclus)
-docs/                    # Chapitres 00 à 26 (un par étape), adr/, manuscrit/, images/
+docs/                    # Chapitres 00 à 27 (un par étape), adr/, manuscrit/, images/
 Livre/                   # Chapitres illustrés du livre + PDF final
 docker/keycloak/         # realm-shoppulse.json importé au démarrage
 docker/postgres/         # backup.sh (sauvegardes périodiques, service « backup »)
@@ -306,8 +306,12 @@ Adopté après coup (le projet a historiquement été développé sur `main`) :
   décrit (quoi, pourquoi, vérifications), puis **demande la validation au
   propriétaire dans la conversation**. Jamais de merge sans accord explicite.
   Après merge : suppression de la branche (`gh pr merge --delete-branch`).
-- Le message de commit suit le style du dépôt : français, première ligne
-  résumée, corps en puces (quoi + preuves : scores de tests).
+- **CI obligatoire** (`.github/workflows/ci.yml`, docs/27) : deux jobs —
+  *Build + tests rapides* (build, NetArchTest, intégration Testcontainers +
+  Keycloak) et *E2E + A11y* (pile compose complète + Playwright). Les deux
+  statuts sont **requis** par la protection de `main` : une PR rouge ne se
+  fusionne pas. Le message de commit suit le style du dépôt : français,
+  première ligne résumée, corps en puces (quoi + preuves : scores de tests).
 
 ## 10. Points de vigilance pour un agent
 
