@@ -126,13 +126,18 @@ public class EfOrderService(ShopPulseDbContext db, EfProductService products,
 
        // ---- Administration des commandes (back-office) ----
 
-       public async Task<IReadOnlyList<Order>> GetOrdersAsync(OrderStatus? status = null, CancellationToken ct = default)
+       public async Task<PagedResult<Order>> GetOrdersAsync(OrderStatus? status = null,
+              int skip = 0, int take = 25, CancellationToken ct = default)
        {
-              var query = db.Orders.AsNoTracking().Include(o => o.Lines).AsQueryable();
+              var query = db.Orders.AsNoTracking().AsQueryable();
               if (status is { } s)
                      query = query.Where(o => o.Status == s);
-              var entities = await query.OrderByDescending(o => o.Id).ToListAsync(ct);
-              return entities.Select(e => e.ToDomain()).ToList();
+              var total = await query.CountAsync(ct);
+              var entities = await query.Include(o => o.Lines)
+                     .OrderByDescending(o => o.Id)
+                     .Skip(skip).Take(Math.Clamp(take, 1, 100))
+                     .ToListAsync(ct);
+              return new PagedResult<Order>(entities.Select(e => e.ToDomain()).ToList(), total);
        }
 
        /// <summary>Transitions autorisées : une commande ne recule jamais, une annulée

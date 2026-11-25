@@ -1,22 +1,25 @@
 @page "/account"
 @attribute [Authorize]
+@using Microsoft.Extensions.Localization
+@using ShopPulse.UI.Resources
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Mon compte — ShopPulse</PageTitle>
-<h1>Mon compte</h1>
+<PageTitle>@L["AccountTitle"] — ShopPulse</PageTitle>
+<h1>@L["AccountTitle"]</h1>
 
 @* Profil lu depuis les claims du cookie de session (émis par Keycloak via OIDC) :
    rien n'est stocké côté boutique, l'identité appartient au fournisseur d'identité. *@
 <AuthorizeView>
        <Authorized>
               <dl>
-                     <dt>Nom d'utilisateur</dt>
+                     <dt>@L["AccountUsername"]</dt>
                      <dd>@context.User.Identity?.Name</dd>
-                     <dt>E-mail</dt>
+                     <dt>@L["AccountEmail"]</dt>
                      <dd>@context.User.FindFirst("email")?.Value</dd>
               </dl>
-              <p><a href="/account/orders">Mes commandes</a></p>
+              <p><a href="/account/orders">@L["MyOrders"]</a></p>
               <form method="post" action="/logout">
-                     <button type="submit">Se déconnecter</button>
+                     <button type="submit">@L["Logout"]</button>
               </form>
        </Authorized>
 </AuthorizeView>

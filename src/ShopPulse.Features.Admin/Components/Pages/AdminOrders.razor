@@ -12,7 +12,7 @@
 
 <p>
        <label for="filtre">Statut :</label>
-       <select id="filtre" @bind="_filter" @bind:after="LoadAsync">
+       <select id="filtre" @bind="_filter" @bind:after="FilterChangedAsync">
               <option value="">Toutes</option>
               <option value="Pending">En attente</option>
               <option value="Paid">Payées</option>
@@ -25,12 +25,13 @@
 {
        <p aria-busy="true">Chargement…</p>
 }
-else if (_orders.Count == 0)
+else if (_orders.Items.Count == 0)
 {
        <p>Aucune commande pour ce filtre.</p>
 }
 else
 {
+       <p class="results-count">@_orders.Total commande(s) — page @_page / @_pageCount</p>
        <table>
               <thead>
                      <tr>
@@ -39,7 +40,7 @@ else
                      </tr>
               </thead>
               <tbody>
-                     @foreach (var order in _orders)
+                     @foreach (var order in _orders.Items)
                      {
                             <tr @key="order.Id">
                                    <td>@order.Id.ToString("N")[..8].ToUpperInvariant()</td>
@@ -65,6 +66,14 @@ else
                      }
               </tbody>
        </table>
+       @if (_pageCount > 1)
+       {
+              <nav aria-label="Pagination" class="filters">
+                     <button disabled="@(_page <= 1)" @onclick="() => GoToPageAsync(_page - 1)">← Précédent</button>
+                     <span>Page @_page / @_pageCount</span>
+                     <button disabled="@(_page >= _pageCount)" @onclick="() => GoToPageAsync(_page + 1)">Suivant →</button>
+              </nav>
+       }
 }
 
 @if (_error is not null)
@@ -73,8 +82,10 @@ else
 }
 
 @code {
-       private IReadOnlyList<Order>? _orders;
+       private PagedResult<Order>? _orders;
        private string _filter = "";
+       private int _page = 1;
+       private int _pageCount = 1;
        private string? _error;
        private bool _busy;
 
@@ -83,7 +94,20 @@ else
        private async Task LoadAsync()
        {
               OrderStatus? status = Enum.TryParse<OrderStatus>(_filter, out var s) ? s : null;
-              _orders = await Orders.GetOrdersAsync(status);
+              _orders = await Orders.GetOrdersAsync(status, (_page - 1) * 25, 25);
+              _pageCount = Math.Max(1, (int)Math.Ceiling(_orders.Total / 25.0));
+       }
+
+       private async Task FilterChangedAsync()
+       {
+              _page = 1;               // nouveau filtre = retour à la première page
+              await LoadAsync();
+       }
+
+       private async Task GoToPageAsync(int page)
+       {
+              _page = Math.Clamp(page, 1, _pageCount);
+              await LoadAsync();
        }
 
        private async Task SetStatusAsync(Guid id, OrderStatus status)

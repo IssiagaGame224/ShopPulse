@@ -17,4 +17,70 @@
   <data name="Cart.Items.many" xml:space="preserve"><value>{0} مقالة</value></data>
   <data name="Cart.Items.other" xml:space="preserve"><value>{0} مقال</value></data>
   <data name="AddedToCart" xml:space="preserve"><value>تمت إضافة المنتج إلى السلة.</value></data>
+  <data name="AccountTitle" xml:space="preserve">
+    <value>حسابي</value>
+  </data>
+  <data name="AccountUsername" xml:space="preserve">
+    <value>اسم المستخدم</value>
+  </data>
+  <data name="AccountEmail" xml:space="preserve">
+    <value>البريد الإلكتروني</value>
+  </data>
+  <data name="MyOrders" xml:space="preserve">
+    <value>طلباتي</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>تسجيل الخروج</value>
+  </data>
+  <data name="OrdersEmpty" xml:space="preserve">
+    <value>لم تقم بأي طلب بعد.</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>جارٍ التحميل…</value>
+  </data>
+  <data name="OrderNotFound" xml:space="preserve">
+    <value>الطلب غير موجود</value>
+  </data>
+  <data name="OrderNotFoundHint" xml:space="preserve">
+    <value>هذا الطلب غير موجود أو لا يخص حسابك.</value>
+  </data>
+  <data name="PlacedOn" xml:space="preserve">
+    <value>بتاريخ {0}</value>
+  </data>
+  <data name="Shipping" xml:space="preserve">
+    <value>الشحن</value>
+  </data>
+  <data name="ShippingFree" xml:space="preserve">
+    <value>مجاني</value>
+  </data>
+  <data name="Subtotal" xml:space="preserve">
+    <value>المجموع الفرعي</value>
+  </data>
+  <data name="TotalLabel" xml:space="preserve">
+    <value>الإجمالي</value>
+  </data>
+  <data name="VatIncluded" xml:space="preserve">
+    <value>منها ضريبة {0}٪</value>
+  </data>
+  <data name="StatusPending" xml:space="preserve">
+    <value>بانتظار الدفع</value>
+  </data>
+  <data name="StatusPaid" xml:space="preserve">
+    <value>مدفوع</value>
+  </data>
+  <data name="StatusShipped" xml:space="preserve">
+    <value>تم الشحن</value>
+  </data>
+  <data name="StatusCancelled" xml:space="preserve">
+    <value>ملغي</value>
+  </data>
+  <data name="TrackingTitle" xml:space="preserve">
+    <value>تتبع الطلب</value>
+  </data>
+  <data name="TrackingInvalid" xml:space="preserve">
+    <value>رابط تتبع غير صالح</value>
+  </data>
+  <data name="TrackingInvalidHint" xml:space="preserve">
+    <value>رابط التتبع هذا غير صالح أو غير مكتمل. تحقق من العنوان المستلم عبر البريد الإلكتروني.</value>
+  </data>
 </root>

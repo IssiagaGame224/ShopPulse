@@ -1,17 +1,20 @@
 @page "/account/orders"
 @attribute [Authorize]
+@using Microsoft.Extensions.Localization
+@using ShopPulse.UI.Resources
 @inject IOrderHistory Orders
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Mes commandes — ShopPulse</PageTitle>
-<h1>Mes commandes</h1>
+<PageTitle>@L["MyOrders"] — ShopPulse</PageTitle>
+<h1>@L["MyOrders"]</h1>
 
 @if (_orders is null)
 {
-       <p aria-busy="true">Chargement…</p>
+       <p aria-busy="true">@L["Loading"]</p>
 }
 else if (_orders.Count == 0)
 {
-       <p>Vous n'avez pas encore passé de commande. <a href="/catalog">Voir le catalogue</a></p>
+       <p>@L["OrdersEmpty"] <a href="/catalog">@L["CatalogTitle"]</a></p>
 }
 else
 {
@@ -20,7 +23,7 @@ else
               {
                      <li @key="order.Id">
                             <a href="/account/orders/@order.Id">
-                                   Commande @order.Id.ToString("N")[..8].ToUpperInvariant()
+                                   @L["TrackingTitle"] @order.Id.ToString("N")[..8].ToUpperInvariant()
                             </a>
                             — @order.CreatedAt.ToString("dd/MM/yyyy"), @order.Total.ToString("0.00") @order.Currency
                             (@StatusLabel(order.Status))
@@ -35,12 +38,12 @@ else
        protected override async Task OnInitializedAsync() =>
               _orders = await Orders.GetMyOrdersAsync();
 
-       internal static string StatusLabel(OrderStatus status) => status switch
+       private string StatusLabel(OrderStatus status) => status switch
        {
-              OrderStatus.Pending => "en attente de paiement",
-              OrderStatus.Paid => "payée",
-              OrderStatus.Shipped => "expédiée",
-              OrderStatus.Cancelled => "annulée",
+              OrderStatus.Pending => L["StatusPending"],
+              OrderStatus.Paid => L["StatusPaid"],
+              OrderStatus.Shipped => L["StatusShipped"],
+              OrderStatus.Cancelled => L["StatusCancelled"],
               _ => status.ToString(),
        };
 }

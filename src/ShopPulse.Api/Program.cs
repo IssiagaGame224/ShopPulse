@@ -185,12 +185,15 @@ api.MapGet("/products/{id:int}", async (int id, ShopPulse.Application.IProductSe
 .Produces<Product>(StatusCodes.Status200OK)
 .ProducesProblem(StatusCodes.Status404NotFound);
 
-// Pagination et filtres exécutés en SQL côté serveur : le client ne reçoit que sa page.
+// Pagination, filtres et tri exécutés en SQL côté serveur : le client ne reçoit que sa page.
 api.MapGet("/products/page", async (
-       int? skip, int? take, string? search, string? category,
+       int? skip, int? take, string? search, string? category, string? sort,
        ShopPulse.Application.IProductService s, CancellationToken ct) =>
 {
-       var page = await s.GetPageAsync(Math.Max(0, skip ?? 0), Math.Clamp(take ?? 20, 1, 100), search, category, ct);
+       if (!ShopPulse.Application.ProductSort.IsValid(sort))
+              return (IResult)Results.BadRequest(new { error = $"Tri inconnu : « {sort} »." });
+       var page = await s.GetPageAsync(Math.Max(0, skip ?? 0), Math.Clamp(take ?? 20, 1, 100),
+              search, category, sort, ct);
        return Results.Ok(page);
 })
 .WithName("GetProductsPage")
@@ -332,6 +335,23 @@ api.MapGet("/orders/{id:guid}", async (Guid id, HttpContext ctx, EfOrderService 
 .Produces<Order>(StatusCodes.Status200OK)
 .ProducesProblem(StatusCodes.Status404NotFound);
 
+// Suivi invité : lien signé HMAC envoyé dans l'email de confirmation — pas de session,
+// pas d'énumération (signature en temps constant, 404 sinon).
+api.MapGet("/orders/{id:guid}/track", async (Guid id, string? sig, HttpContext ctx,
+       EfOrderService orders, CancellationToken ct) =>
+{
+       var key = ctx.RequestServices.GetRequiredService<IConfiguration>()["Store:TrackingKey"]
+              ?? OrderTracking.DefaultDevKey;
+       if (!OrderTracking.Validate(id, sig, key))
+              return (IResult)Results.NotFound();
+       return await orders.FindByIdAsync(id, ct) is { } order
+              ? Results.Ok(order)
+              : Results.NotFound();
+})
+.WithName("TrackOrder")
+.Produces<Order>(StatusCodes.Status200OK)
+.ProducesProblem(StatusCodes.Status404NotFound);
+
 // ---- Paiement (phase 6) ----
 
 // Session de paiement d'une commande en attente : le montant vient de la commande
@@ -408,7 +428,7 @@ if (string.IsNullOrEmpty(builder.Configuration["Stripe:SecretKey"]))
 // ---- Back-office (rôle stock-manager, phase 5) ----
 var admin = api.MapGroup("/admin").RequireAuthorization("CanManageStock");
 
-admin.MapGet("/orders", async (string? status, EfOrderService orders, CancellationToken ct) =>
+admin.MapGet("/orders", async (string? status, int? page, EfOrderService orders, CancellationToken ct) =>
 {
        OrderStatus? filter = null;
        if (!string.IsNullOrWhiteSpace(status))
@@ -417,10 +437,11 @@ admin.MapGet("/orders", async (string? status, EfOrderService orders, Cancellati
                      return (IResult)Results.BadRequest(new { error = $"Statut inconnu : « {status} »." });
               filter = parsed;
        }
-       return Results.Ok(await orders.GetOrdersAsync(filter, ct));
+       var current = Math.Max(1, page ?? 1);
+       return Results.Ok(await orders.GetOrdersAsync(filter, (current - 1) * 25, 25, ct));
 })
 .WithName("AdminGetOrders")
-.Produces<IReadOnlyList<Order>>(StatusCodes.Status200OK);
+.Produces<ShopPulse.Application.PagedResult<Order>>(StatusCodes.Status200OK);
 
 admin.MapPut("/orders/{id:guid}/status", async (Guid id, SetOrderStatusRequest req,
        EfOrderService orders, ShopPulse.Application.IOrderEmailSender emails,

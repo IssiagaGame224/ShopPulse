@@ -19,11 +19,13 @@ public sealed class ProductApiClient(HttpClient http) : IProductService
               => await http.GetFromJsonAsync<Product>($"api/products/{id}", ct);
 
        public async Task<PagedResult<Product>> GetPageAsync(
-              int skip, int take, string? search, string? category = null, CancellationToken ct = default)
+              int skip, int take, string? search, string? category = null, string? sort = null,
+              CancellationToken ct = default)
        {
               var url = $"api/products/page?skip={skip}&take={take}";
               if (!string.IsNullOrWhiteSpace(search)) url += $"&search={Uri.EscapeDataString(search)}";
               if (!string.IsNullOrWhiteSpace(category)) url += $"&category={Uri.EscapeDataString(category)}";
+              if (!string.IsNullOrWhiteSpace(sort)) url += $"&sort={Uri.EscapeDataString(sort)}";
               return await http.GetFromJsonAsync<PagedResult<Product>>(url, ct)
                      ?? new PagedResult<Product>([], 0);
        }

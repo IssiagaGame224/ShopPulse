@@ -1,0 +1,57 @@
+@page "/track/{Id:guid}"
+@using Microsoft.Extensions.Localization
+@using ShopPulse.UI.Resources
+@inject IOrderTracking Tracking
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["TrackingTitle"] — ShopPulse</PageTitle>
+
+@if (!_loaded)
+{
+       <p aria-busy="true">@L["Loading"]</p>
+}
+else if (_order is null)
+{
+       <h1>@L["TrackingInvalid"]</h1>
+       <p>@L["TrackingInvalidHint"]</p>
+}
+else
+{
+       <h1>@L["TrackingTitle"] @Id.ToString("N")[..8].ToUpperInvariant()</h1>
+       <p>@string.Format(L["PlacedOn"], _order.CreatedAt.ToString("dd/MM/yyyy")) — <strong>@StatusLabel(_order.Status)</strong></p>
+
+       <ul>
+              @foreach (var line in _order.Lines)
+              {
+                     <li>@line.Quantity × @line.ProductName — @line.LineTotal.ToString("0.00") @_order.Currency</li>
+              }
+       </ul>
+       <p>
+              @L["Shipping"] : @(_order.ShippingCost > 0 ? $"{_order.ShippingCost:0.00} {_order.Currency}" : L["ShippingFree"].Value)
+              — <strong>@L["TotalLabel"] : @_order.Total.ToString("0.00") @_order.Currency</strong>
+       </p>
+}
+
+@code {
+       [Parameter] public Guid Id { get; set; }
+       [SupplyParameterFromQuery] public string? Sig { get; set; }
+
+       private Order? _order;
+       private bool _loaded;
+
+       protected override async Task OnInitializedAsync()
+       {
+              if (!string.IsNullOrWhiteSpace(Sig))
+                     _order = await Tracking.TrackAsync(Id, Sig);
+              _loaded = true;
+       }
+
+       private string StatusLabel(OrderStatus status) => status switch
+       {
+              OrderStatus.Pending => L["StatusPending"],
+              OrderStatus.Paid => L["StatusPaid"],
+              OrderStatus.Shipped => L["StatusShipped"],
+              OrderStatus.Cancelled => L["StatusCancelled"],
+              _ => status.ToString(),
+       };
+}

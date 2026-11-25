@@ -54,6 +54,13 @@ public interface IOrderHistory
        Task<Order?> GetByIdAsync(Guid id, CancellationToken ct = default);
 }
 
+/// <summary>Suivi invité : consultation d'une commande via un lien signé (sans compte).
+/// La signature est calculée côté serveur et envoyée dans l'email de confirmation.</summary>
+public interface IOrderTracking
+{
+       Task<Order?> TrackAsync(Guid id, string signature, CancellationToken ct = default);
+}
+
 /// <summary>Envoi des emails transactionnels. Effet de bord : un échec d'envoi ne doit
 /// JAMAIS faire échouer l'opération métier (l'appelant journalise et continue).
 /// Limite : en production, préférer un pattern Outbox (email garanti, rejouable).</summary>

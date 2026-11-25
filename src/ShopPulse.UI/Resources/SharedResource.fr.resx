@@ -14,4 +14,70 @@
   <data name="Cart.Items.one" xml:space="preserve"><value>{0} article</value></data>
   <data name="Cart.Items.other" xml:space="preserve"><value>{0} articles</value></data>
   <data name="AddedToCart" xml:space="preserve"><value>Produit ajouté au panier.</value></data>
+  <data name="AccountTitle" xml:space="preserve">
+    <value>Mon compte</value>
+  </data>
+  <data name="AccountUsername" xml:space="preserve">
+    <value>Nom d'utilisateur</value>
+  </data>
+  <data name="AccountEmail" xml:space="preserve">
+    <value>E-mail</value>
+  </data>
+  <data name="MyOrders" xml:space="preserve">
+    <value>Mes commandes</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>Se déconnecter</value>
+  </data>
+  <data name="OrdersEmpty" xml:space="preserve">
+    <value>Vous n'avez pas encore passé de commande.</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Chargement…</value>
+  </data>
+  <data name="OrderNotFound" xml:space="preserve">
+    <value>Commande introuvable</value>
+  </data>
+  <data name="OrderNotFoundHint" xml:space="preserve">
+    <value>Cette commande n'existe pas ou n'appartient pas à votre compte.</value>
+  </data>
+  <data name="PlacedOn" xml:space="preserve">
+    <value>Passée le {0}</value>
+  </data>
+  <data name="Shipping" xml:space="preserve">
+    <value>Livraison</value>
+  </data>
+  <data name="ShippingFree" xml:space="preserve">
+    <value>Offerte</value>
+  </data>
+  <data name="Subtotal" xml:space="preserve">
+    <value>Sous-total</value>
+  </data>
+  <data name="TotalLabel" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="VatIncluded" xml:space="preserve">
+    <value>dont TVA {0} %</value>
+  </data>
+  <data name="StatusPending" xml:space="preserve">
+    <value>en attente de paiement</value>
+  </data>
+  <data name="StatusPaid" xml:space="preserve">
+    <value>payée</value>
+  </data>
+  <data name="StatusShipped" xml:space="preserve">
+    <value>expédiée</value>
+  </data>
+  <data name="StatusCancelled" xml:space="preserve">
+    <value>annulée</value>
+  </data>
+  <data name="TrackingTitle" xml:space="preserve">
+    <value>Suivi de commande</value>
+  </data>
+  <data name="TrackingInvalid" xml:space="preserve">
+    <value>Lien de suivi invalide</value>
+  </data>
+  <data name="TrackingInvalidHint" xml:space="preserve">
+    <value>Ce lien de suivi est invalide ou incomplet. Vérifiez l'adresse reçue par email.</value>
+  </data>
 </root>

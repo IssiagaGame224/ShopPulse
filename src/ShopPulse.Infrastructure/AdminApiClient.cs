@@ -17,11 +17,14 @@ public sealed class AdminApiClient(IHttpClientFactory factory) : IOrderAdmin, IP
               Converters = { new JsonStringEnumConverter() }
        };
 
-       public async Task<IReadOnlyList<Order>> GetOrdersAsync(OrderStatus? status = null, CancellationToken ct = default)
+       public async Task<PagedResult<Order>> GetOrdersAsync(OrderStatus? status = null,
+              int skip = 0, int take = 25, CancellationToken ct = default)
        {
-              var url = status is { } s ? $"api/admin/orders?status={s}" : "api/admin/orders";
+              var url = $"api/admin/orders?page={skip / Math.Max(1, take) + 1}";
+              if (status is { } s) url += $"&status={s}";
               return await factory.CreateClient("api")
-                     .GetFromJsonAsync<List<Order>>(url, _json, ct) ?? [];
+                     .GetFromJsonAsync<PagedResult<Order>>(url, _json, ct)
+                     ?? new PagedResult<Order>([], 0);
        }
 
        public async Task<OrderWriteResult> SetStatusAsync(Guid orderId, OrderStatus status, CancellationToken ct = default)

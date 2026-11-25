@@ -162,6 +162,7 @@ builder.Services.AddScoped<OrderApiClient>();                  // client HTTP de
 builder.Services.AddScoped<IOrderPlacer>(sp => sp.GetRequiredService<OrderApiClient>());
 builder.Services.AddScoped<IOrderHistory>(sp => sp.GetRequiredService<OrderApiClient>());
 builder.Services.AddScoped<IPaymentClient>(sp => sp.GetRequiredService<OrderApiClient>());
+builder.Services.AddScoped<IOrderTracking>(sp => sp.GetRequiredService<OrderApiClient>());
 builder.Services.AddScoped<AdminApiClient>();                  // back-office (API, rôle stock-manager)
 builder.Services.AddScoped<IOrderAdmin>(sp => sp.GetRequiredService<AdminApiClient>());
 builder.Services.AddScoped<IProductAdmin>(sp => sp.GetRequiredService<AdminApiClient>());

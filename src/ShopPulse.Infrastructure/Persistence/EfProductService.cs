@@ -27,7 +27,8 @@ public class EfProductService(ShopPulseDbContext db) : IProductService, IProduct
        }
 
        public async Task<PagedResult<Product>> GetPageAsync(
-              int skip, int take, string? search, string? category = null, CancellationToken ct = default)
+              int skip, int take, string? search, string? category = null, string? sort = null,
+              CancellationToken ct = default)
        {
               var query = db.Products.AsNoTracking().AsQueryable();
               if (!string.IsNullOrWhiteSpace(category))
@@ -38,9 +39,19 @@ public class EfProductService(ShopPulseDbContext db) : IProductService, IProduct
                      query = query.Where(p => EF.Functions.ILike(p.Name, pattern, "\\"));
               }
 
+              // Tri SQL : jamais de chargement complet pour trier en mémoire.
+              query = sort switch
+              {
+                     ProductSort.PriceAsc => query.OrderBy(p => p.Price).ThenBy(p => p.Id),
+                     ProductSort.PriceDesc => query.OrderByDescending(p => p.Price).ThenBy(p => p.Id),
+                     ProductSort.Newest => query.OrderByDescending(p => p.Id),
+                     ProductSort.Promo => query.OrderByDescending(p => p.OldPrice != null).ThenBy(p => p.Id),
+                     _ => query.OrderBy(p => p.Id),
+              };
+
               var total = await query.CountAsync(ct);
               var entities = await query.Include(p => p.Category)
-                     .OrderBy(p => p.Id).Skip(skip).Take(take).ToListAsync(ct);
+                     .Skip(skip).Take(take).ToListAsync(ct);
               return new PagedResult<Product>(entities.Select(e => e.ToDomain()).ToList(), total);
        }
 

@@ -24,6 +24,16 @@
                      }
               </select>
        </div>
+       <div>
+              <label for="sort">Trier par</label>
+              <select id="sort" name="sort">
+                     <option value="" selected="@(Sort is null)">Pertinence</option>
+                     <option value="price-asc" selected="@(Sort == "price-asc")">Prix croissant</option>
+                     <option value="price-desc" selected="@(Sort == "price-desc")">Prix décroissant</option>
+                     <option value="newest" selected="@(Sort == "newest")">Nouveautés</option>
+                     <option value="promo" selected="@(Sort == "promo")">Promotions d'abord</option>
+              </select>
+       </div>
        <button class="sp-btn sp-btn--primary">Filtrer</button>
 </form>
 
@@ -59,6 +69,7 @@ else
 
        [SupplyParameterFromQuery] public string? Category { get; set; }
        [SupplyParameterFromQuery(Name = "q")] public string? Search { get; set; }
+       [SupplyParameterFromQuery] public string? Sort { get; set; }
        [SupplyParameterFromQuery(Name = "page")] public int? PageParam { get; set; }
 
        private int CurrentPage => Math.Max(1, PageParam ?? 1);
@@ -78,8 +89,8 @@ else
                             ct => Products.GetCategoriesAsync(ct), TimeSpan.FromMinutes(5));
 
               var page = await Query.GetAsync(
-                     $"products:page:{Category}:{Search}:{CurrentPage}",
-                     ct => Products.GetPageAsync((CurrentPage - 1) * PageSize, PageSize, Search, Category, ct),
+                     $"products:page:{Category}:{Search}:{Sort}:{CurrentPage}",
+                     ct => Products.GetPageAsync((CurrentPage - 1) * PageSize, PageSize, Search, Category, Sort, ct),
                      TimeSpan.FromSeconds(30));
 
               _items = page.Items;

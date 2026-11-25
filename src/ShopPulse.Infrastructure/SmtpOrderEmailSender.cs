@@ -50,6 +50,9 @@ public sealed class SmtpOrderEmailSender(IConfiguration config, ILogger<SmtpOrde
                      "",
                      $"Livraison à : {order.Address}, {order.PostalCode}",
                      "",
+                     // Lien de suivi signé : consultable sans compte (capability URL).
+                     $"Suivre votre commande : {TrackingUrl(order)}",
+                     "",
                      "Merci de votre confiance — ShopPulse",
               ]);
               var body = string.Join(Environment.NewLine, lines);
@@ -67,6 +70,13 @@ public sealed class SmtpOrderEmailSender(IConfiguration config, ILogger<SmtpOrde
               await client.DisconnectAsync(quit: true, ct);
               logger.LogInformation("Email de confirmation de la commande {OrderId} envoyé à {Email}.",
                      order.Id, order.Email);
+       }
+
+       private string TrackingUrl(Order order)
+       {
+              var key = config["Store:TrackingKey"] ?? OrderTracking.DefaultDevKey;
+              var baseUrl = (config["Store:PublicWebUrl"] ?? "http://localhost:5026").TrimEnd('/');
+              return $"{baseUrl}/fr/track/{order.Id}?sig={OrderTracking.ComputeSignature(order.Id, key)}";
        }
 
        public async Task SendStatusChangedAsync(Order order, CancellationToken ct = default)

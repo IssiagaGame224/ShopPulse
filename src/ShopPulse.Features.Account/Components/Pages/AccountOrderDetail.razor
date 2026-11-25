@@ -1,21 +1,21 @@
 @page "/account/orders/{Id:guid}"
 @attribute [Authorize]
+@using Microsoft.Extensions.Localization
+@using ShopPulse.UI.Resources
 @inject IOrderHistory Orders
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Commande — ShopPulse</PageTitle>
+<PageTitle>@L["TrackingTitle"] — ShopPulse</PageTitle>
 
 @if (_order is null)
 {
-       <h1>Commande introuvable</h1>
-       <p>Cette commande n'existe pas ou n'appartient pas à votre compte.</p>
+       <h1>@L["OrderNotFound"]</h1>
+       <p>@L["OrderNotFoundHint"]</p>
 }
 else
 {
-       <h1>Commande @Id.ToString("N")[..8].ToUpperInvariant()</h1>
-       <p>
-              Passée le @_order.CreatedAt.ToString("dd/MM/yyyy") —
-              @AccountOrders.StatusLabel(_order.Status)
-       </p>
+       <h1>@L["TrackingTitle"] @Id.ToString("N")[..8].ToUpperInvariant()</h1>
+       <p>@string.Format(L["PlacedOn"], _order.CreatedAt.ToString("dd/MM/yyyy")) — @StatusLabel(_order.Status)</p>
 
        <ul>
               @foreach (var line in _order.Lines)
@@ -25,27 +25,27 @@ else
        </ul>
        <dl class="summary-box">
               <div>
-                     <dt>Sous-total</dt>
+                     <dt>@L["Subtotal"]</dt>
                      <dd>@_order.Subtotal.ToString("0.00") @_order.Currency</dd>
               </div>
               <div>
-                     <dt>Livraison</dt>
-                     <dd>@(_order.ShippingCost > 0 ? $"{_order.ShippingCost:0.00} {_order.Currency}" : "Offerte")</dd>
+                     <dt>@L["Shipping"]</dt>
+                     <dd>@(_order.ShippingCost > 0 ? $"{_order.ShippingCost:0.00} {_order.Currency}" : L["ShippingFree"].Value)</dd>
               </div>
               <div class="total">
-                     <dt>Total</dt>
+                     <dt>@L["TotalLabel"]</dt>
                      <dd>@_order.Total.ToString("0.00") @_order.Currency</dd>
               </div>
               <div>
-                     <dt>dont TVA @((_order.TaxRate * 100).ToString("0")) %</dt>
+                     <dt>@string.Format(L["VatIncluded"], (_order.TaxRate * 100).ToString("0"))</dt>
                      <dd>@_order.TaxAmount.ToString("0.00") @_order.Currency</dd>
               </div>
        </dl>
 
-       <h2>Livraison</h2>
+       <h2>@L["Shipping"]</h2>
        <p>@_order.FullName<br />@_order.Address<br />@_order.PostalCode</p>
 
-       <p><a href="/account/orders">← Mes commandes</a></p>
+       <p><a href="/account/orders">← @L["MyOrders"]</a></p>
 }
 
 @code {
@@ -54,4 +54,13 @@ else
 
        protected override async Task OnInitializedAsync() =>
               _order = await Orders.GetByIdAsync(Id);
+
+       private string StatusLabel(OrderStatus status) => status switch
+       {
+              OrderStatus.Pending => L["StatusPending"],
+              OrderStatus.Paid => L["StatusPaid"],
+              OrderStatus.Shipped => L["StatusShipped"],
+              OrderStatus.Cancelled => L["StatusCancelled"],
+              _ => status.ToString(),
+       };
 }

@@ -32,8 +32,9 @@ public interface IProductAdmin
 /// <summary>Port d'administration des commandes (back-office, rôle stock-manager).</summary>
 public interface IOrderAdmin
 {
-       /// <summary>Toutes les commandes, plus récentes d'abord, filtrables par statut.</summary>
-       Task<IReadOnlyList<Order>> GetOrdersAsync(OrderStatus? status = null, CancellationToken ct = default);
+       /// <summary>Commandes paginées, plus récentes d'abord, filtrables par statut.</summary>
+       Task<PagedResult<Order>> GetOrdersAsync(OrderStatus? status = null,
+              int skip = 0, int take = 25, CancellationToken ct = default);
 
        /// <summary>Transition de statut validée (Pending→Paid|Cancelled, Paid→Shipped|Cancelled).
        /// Résultat nul si la commande n'existe pas ; erreur si la transition est interdite.</summary>

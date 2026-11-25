@@ -16,8 +16,8 @@ public class CachedProductService(IProductService inner, HybridCache cache) : IP
        public Task<Product?> GetByIdAsync(int id, CancellationToken ct = default)
               => inner.GetByIdAsync(id, ct);
 
-       public Task<PagedResult<Product>> GetPageAsync(int skip, int take, string? search, string? category = null, CancellationToken ct = default)
-              => inner.GetPageAsync(skip, take, search, category, ct);
+       public Task<PagedResult<Product>> GetPageAsync(int skip, int take, string? search, string? category = null, string? sort = null, CancellationToken ct = default)
+              => inner.GetPageAsync(skip, take, search, category, sort, ct);
 
        public Task<IReadOnlyList<string>> GetCategoriesAsync(CancellationToken ct = default)
               => inner.GetCategoriesAsync(ct);

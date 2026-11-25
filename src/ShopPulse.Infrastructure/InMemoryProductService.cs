@@ -22,7 +22,8 @@ public class InMemoryProductService : IProductService
        }
 
        public async Task<PagedResult<Product>> GetPageAsync(
-              int skip, int take, string? search, string? category = null, CancellationToken ct = default)
+              int skip, int take, string? search, string? category = null, string? sort = null,
+              CancellationToken ct = default)
        {
               await Task.Delay(150, ct); // latence réaliste
               var query = _data.AsEnumerable();
@@ -30,6 +31,15 @@ public class InMemoryProductService : IProductService
                      query = query.Where(p => p.Category == category);
               if (!string.IsNullOrWhiteSpace(search))
                      query = query.Where(p => p.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
+
+              query = sort switch
+              {
+                     ProductSort.PriceAsc => query.OrderBy(p => p.Price),
+                     ProductSort.PriceDesc => query.OrderByDescending(p => p.Price),
+                     ProductSort.Newest => query.OrderByDescending(p => p.Id),
+                     ProductSort.Promo => query.OrderByDescending(p => p.IsOnSale),
+                     _ => query,
+              };
 
               var list = query.ToList();
               return new PagedResult<Product>(list.Skip(skip).Take(take).ToList(), list.Count);

@@ -185,6 +185,38 @@ public class ApiMatrixTests(ApiFactory factory)
               Assert.NotEmpty(orders!);
        }
 
+       // ---- Tri catalogue & suivi invité signé ----
+
+       [Fact]
+       public async Task GetProductsPage_PriceAscending_IsSorted()
+       {
+              var page = await Client().GetFromJsonAsync<JsonElement>(
+                     "api/products/page?take=50&sort=price-asc");
+              var prices = page.GetProperty("items").EnumerateArray()
+                     .Select(p => p.GetProperty("price").GetDecimal()).ToList();
+              Assert.Equal(prices.OrderBy(p => p).ToList(), prices);
+       }
+
+       [Fact]
+       public async Task GetProductsPage_UnknownSort_Returns400() =>
+              Assert.Equal(HttpStatusCode.BadRequest,
+                     (await Client().GetAsync("api/products/page?sort=nimporte")).StatusCode);
+
+       [Fact]
+       public async Task TrackOrder_ValidSignature_ReturnsOrder_InvalidIs404()
+       {
+              var order = await PlaceOrderAsync(Client(), $"it-track-{Guid.NewGuid():N}", "a@b.fr", (16, 1));
+              var id = order.GetProperty("id").GetGuid();
+              var sig = ShopPulse.Infrastructure.OrderTracking.ComputeSignature(
+                     id, ShopPulse.Infrastructure.OrderTracking.DefaultDevKey);
+
+              var tracked = await Client().GetFromJsonAsync<JsonElement>($"api/orders/{id}/track?sig={sig}");
+              Assert.Equal(id, tracked.GetProperty("id").GetGuid());
+
+              Assert.Equal(HttpStatusCode.NotFound,
+                     (await Client().GetAsync($"api/orders/{id}/track?sig=0000000000000000")).StatusCode);
+       }
+
        // ---- Back-office : matrice + transitions + remboursement/restock ----
 
        [Fact]

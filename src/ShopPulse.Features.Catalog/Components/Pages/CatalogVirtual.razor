@@ -31,7 +31,7 @@
 
        private async ValueTask<ItemsProviderResult<Product>> LoadProducts(ItemsProviderRequest req)
        {
-              var page = await Products.GetPageAsync(req.StartIndex, req.Count, _search, null, req.CancellationToken);
+              var page = await Products.GetPageAsync(req.StartIndex, req.Count, _search, null, null, req.CancellationToken);
               return new ItemsProviderResult<Product>(page.Items, page.Total);
        }
 

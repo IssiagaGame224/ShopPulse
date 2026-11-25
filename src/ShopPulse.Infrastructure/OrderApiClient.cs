@@ -12,7 +12,7 @@ namespace ShopPulse.Infrastructure;
 /// La clé d'idempotence voyage dans l'en-tête Idempotency-Key : un retry réseau ou un
 /// double-clic rejoue la même commande au lieu d'en créer une seconde.
 /// Le jeton d'accès de l'utilisateur est ajouté par AccessTokenHandler (client « api »).</summary>
-public sealed class OrderApiClient(IHttpClientFactory factory) : IOrderPlacer, IOrderHistory, IPaymentClient
+public sealed class OrderApiClient(IHttpClientFactory factory) : IOrderPlacer, IOrderHistory, IPaymentClient, IOrderTracking
 {
        private static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web)
        {
@@ -65,6 +65,15 @@ public sealed class OrderApiClient(IHttpClientFactory factory) : IOrderPlacer, I
        public async Task<Order?> GetByIdAsync(Guid id, CancellationToken ct = default)
        {
               var response = await factory.CreateClient("api").GetAsync($"api/orders/{id}", ct);
+              return response.StatusCode == HttpStatusCode.NotFound
+                     ? null
+                     : await response.Content.ReadFromJsonAsync<Order>(_json, ct);
+       }
+
+       public async Task<Order?> TrackAsync(Guid id, string signature, CancellationToken ct = default)
+       {
+              var response = await factory.CreateClient("api")
+                     .GetAsync($"api/orders/{id}/track?sig={Uri.EscapeDataString(signature)}", ct);
               return response.StatusCode == HttpStatusCode.NotFound
                      ? null
                      : await response.Content.ReadFromJsonAsync<Order>(_json, ct);

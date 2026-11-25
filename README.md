@@ -53,7 +53,9 @@ plus une refonte design e-commerce complète. Chaque étape est documentée dans
   paiement ; simulateur intégré pour développer sans compte Stripe
 - **Livraison** tarifée côté serveur (offerte dès 60 €, avec progression dans le
   panier), **TVA** en prix TTC stockée sur la commande, **restock automatique**
-  à l'annulation
+  et **remboursement** à l'annulation
+- **Suivi de commande invité** par lien signé (HMAC, sans compte), tri catalogue
+  SQL, pages compte localisées fr/en/ar
 - Emails transactionnels (confirmation, statuts) — capturés par Mailpit en dev
 
 **Comptes & administration**
@@ -103,7 +105,7 @@ réseau sont idempotentes, les frontières sont vérifiées par des tests.
 | Identité | Keycloak (OIDC + PKCE), cookie `__Host-` chiffré |
 | Paiement | Stripe.net (Payment Intents, webhooks signés) + simulateur dev |
 | Emails | MailKit + Mailpit (capture dev) |
-| Tests | xUnit, NetArchTest.Rules, Playwright, axe-core (Deque.AxeCore) |
+| Tests | xUnit, NetArchTest.Rules, Playwright, axe-core, Testcontainers (intégration API) |
 | Observabilité | Health checks `/health` (JSON détaillé), logs structurés Serilog |
 | Infra | Docker Compose (5 services), Dockerfiles multi-étapes |
 
@@ -138,6 +140,7 @@ en JSON détaillé — prêtes pour un orchestrateur.
 
 ```bash
 dotnet test tests/ShopPulse.Architecture.Tests   # 14 règles de dépendances
+dotnet test tests/ShopPulse.Api.Tests            # 16 tests d'intégration (Testcontainers + Keycloak)
 dotnet test tests/ShopPulse.E2E                  # 4 parcours Playwright (serveurs requis)
 dotnet test tests/ShopPulse.A11y                 # 5 pages × axe-core WCAG 2.2 AA
 ```
