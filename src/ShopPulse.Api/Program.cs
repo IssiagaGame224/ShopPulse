@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
+using OpenTelemetry.Metrics;
 using Serilog;
 using ShopPulse.Api;
 using ShopPulse.Api.Hubs;
@@ -29,6 +30,14 @@ builder.Services.AddHealthChecks()
        .AddUrlGroup(
               new Uri($"{builder.Configuration["Oidc:Authority"]}/.well-known/openid-configuration"),
               name: "keycloak");
+
+// Métriques OpenTelemetry : requêtes HTTP entrantes/sortantes, exposées au format
+// Prometheus sur /metrics (à protéger par le réseau en production).
+builder.Services.AddOpenTelemetry()
+       .WithMetrics(m => m
+              .AddAspNetCoreInstrumentation()
+              .AddHttpClientInstrumentation()
+              .AddPrometheusExporter());
 
 // Persistance : PostgreSQL via EF Core (phase « vraie boutique », remplace l'in-memory).
 // Chaîne de connexion : appsettings.Development.json en local, ConnectionStrings__ShopPulse
@@ -158,6 +167,7 @@ app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks
 {
        ResponseWriter = WriteHealthJson,
 });
+app.MapPrometheusScrapingEndpoint();   // /metrics (format Prometheus)
 
 if (app.Environment.IsDevelopment())
        app.MapOpenApi();                                   // /openapi/v1.json

@@ -1,3 +1,4 @@
+using OpenTelemetry.Metrics;
 using Serilog;
 using ShopPulse.Application;
 using ShopPulse.Features.Account;
@@ -130,6 +131,13 @@ builder.Services.AddLocalization();
 // Health check : le Web est « Healthy » si l'API répond.
 builder.Services.AddHealthChecks()
     .AddUrlGroup(new Uri(new Uri(builder.Configuration["Api:BaseUrl"]!), "health"), name: "api");
+
+// Métriques OpenTelemetry (format Prometheus sur /metrics).
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(m => m
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddPrometheusExporter());
 // Annonces aux lecteurs d'écran (région live unique dans le layout).
 builder.Services.AddScoped<ILiveAnnouncer, LiveAnnouncer>();
 // Module 6 — Networking : l'interface parle à l'API via un HttpClient typé et résilient.
@@ -242,6 +250,7 @@ app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks
 {
     ResponseWriter = WriteHealthJson,
 });
+app.MapPrometheusScrapingEndpoint();   // /metrics (format Prometheus)
 
 app.MapGet("/login", (string? returnUrl, HttpContext ctx) =>
        Results.Challenge(
