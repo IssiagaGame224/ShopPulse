@@ -66,7 +66,7 @@ public class AdminE2eTests : IAsyncLifetime
               await page.ClickAsync("table tbody tr:first-child a:has-text('Modifier')");
               await page.WaitForSelectorAsync("#price");
               await page.FillAsync("#price", "123.45");
-              await page.ClickAsync("button[type='submit']");
+              await page.ClickAsync("button:has-text('Enregistrer')");
               await page.WaitForSelectorAsync("h1:has-text('Produits')",
                      new PageWaitForSelectorOptions { Timeout = 10000 });
               Assert.Contains("123,45", await page.TextContentAsync("table tbody tr:first-child"));

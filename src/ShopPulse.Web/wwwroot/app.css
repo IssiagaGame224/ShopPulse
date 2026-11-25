@@ -237,3 +237,19 @@ thead th { border-block-end: 2px solid var(--sp-color-border); }
         border-radius: var(--sp-radius); padding: var(--sp-space-2) var(--sp-space-3);
         font-size: .9rem; }
 :root[data-theme="dark"] .free-shipping-hint { background: #14301e; color: #9fd8ae; }
+
+/* Bandeau de réassurance (accueil) */
+.features-strip { display: grid; gap: 1rem; list-style: none; padding: 0;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        margin-block: 0 2rem; }
+.features-strip li { background: var(--sp-color-surface); border: 1px solid var(--sp-color-border);
+        border-radius: var(--sp-radius); padding: 0.9rem 1rem; text-align: center;
+        box-shadow: var(--sp-shadow); }
+.features-strip strong { display: block; color: var(--sp-color-primary); }
+.features-strip span { color: var(--sp-color-muted); font-size: 0.9rem; }
+
+/* UI de reconnexion/erreur Blazor : masquée tant qu'il n'y a pas d'erreur */
+#blazor-error-ui { display: none; }
+#blazor-error-ui.show { display: block; position: fixed; inset-inline: 0; bottom: 0;
+        background: #b32121; color: #fff; padding: .6rem 1.25rem; z-index: 1000; }
+#blazor-error-ui a { color: #fff; }

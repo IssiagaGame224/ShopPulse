@@ -47,7 +47,7 @@ public class AccountE2eTests : IAsyncLifetime
               Assert.Contains("client", await page.TextContentAsync("dl"));
 
               // 2. Parcours d'achat connecté (navigation améliorée : même circuit).
-              await page.ClickAsync("a[href='catalog']");
+              await page.ClickAsync("a[href='/catalog']");
               await page.WaitForSelectorAsync($"a[href='/product/{ProductId}']");
               await page.ClickAsync($"a[href='/product/{ProductId}']");
               await page.WaitForSelectorAsync("button.sp-btn--primary");
@@ -72,7 +72,7 @@ public class AccountE2eTests : IAsyncLifetime
               await page.FillAsync("#em", "client@shoppulse.local");
               await page.FillAsync("#ad", "3 rue du Compte");
               await page.FillAsync("#pc", "69002");
-              await page.ClickAsync("button[type='submit']");
+              await page.ClickAsync("button:has-text('Continuer')");
               await page.ClickAsync("button:has-text('Payer')");
               // Session simulateur (dev sans clés Stripe) : confirmation dédiée.
               await page.ClickAsync("button:has-text('Simuler le paiement')",

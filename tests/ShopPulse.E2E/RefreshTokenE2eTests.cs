@@ -44,7 +44,7 @@ public class RefreshTokenE2eTests : IAsyncLifetime
               await page.WaitForTimeoutAsync(75_000);
 
               // … puis parcours d'achat complet.
-              await page.ClickAsync("a[href='catalog']");
+              await page.ClickAsync("a[href='/catalog']");
               await page.WaitForSelectorAsync($"a[href='/product/{ProductId}']");
               await page.ClickAsync($"a[href='/product/{ProductId}']");
               await page.WaitForSelectorAsync("button.sp-btn--primary");
@@ -68,7 +68,7 @@ public class RefreshTokenE2eTests : IAsyncLifetime
               await page.FillAsync("#em", "client@shoppulse.local");
               await page.FillAsync("#ad", "3 rue du Compte");
               await page.FillAsync("#pc", "69002");
-              await page.ClickAsync("button[type='submit']");
+              await page.ClickAsync("button:has-text('Continuer')");
               await page.ClickAsync("button:has-text('Payer')");
               await page.ClickAsync("button:has-text('Simuler le paiement')",
                      new PageClickOptions { Timeout = 15000 });

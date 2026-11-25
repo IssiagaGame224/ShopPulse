@@ -66,7 +66,7 @@ public class CheckoutE2eTests : IAsyncLifetime
               await page.FillAsync("#em", "e2e@example.fr");
               await page.FillAsync("#ad", "1 rue du Test");
               await page.FillAsync("#pc", "69001");
-              await page.ClickAsync("button[type='submit']");
+              await page.ClickAsync("button:has-text('Continuer')");
 
               // « Payer » crée la commande puis ouvre la session : en dev (sans clés
               // Stripe), le simulateur affiche un bouton de confirmation dédié.

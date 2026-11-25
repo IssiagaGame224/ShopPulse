@@ -1,6 +1,9 @@
 @inherits LayoutComponentBase
+@using Microsoft.Extensions.Localization
+@using ShopPulse.UI.Resources
 @using ShopPulse.Web.Components.Shared
 @inject ShopPulse.Web.Services.CurrentUserAccessor CurrentUser
+@inject IStringLocalizer<SharedResource> L
 
 @* Renseigne le sub de l'utilisateur dans le scope courant : dans un circuit Blazor,
    c'est le seul chemin pour que les handlers HTTP (sans HttpContext) sachent qui
@@ -17,28 +20,98 @@
 
 <SkipLink />
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<div class="shop">
+    @* ===== En-tête e-commerce (référence : boutiques type joutech.ma) ===== *@
+    <header class="shop-header">
+        <div class="topbar">
+            <p class="topbar-promo">Livraison offerte dès 60 € — expédition soignée partout</p>
+            <div class="topbar-right">
+                <LanguageSwitcher />
+                <AuthorizeView>
+                    <Authorized>
+                        <a href="account">@L["AccountTitle"]</a>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a href="/login">Se connecter</a>
+                    </NotAuthorized>
+                </AuthorizeView>
+                <AuthorizeView Roles="stock-manager">
+                    <Authorized>
+                        <a href="admin/orders">@L["BackOffice"]</a>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+        </div>
+
+        <div class="header-main">
+            <a class="logo" href="/" aria-label="ShopPulse — accueil">Shop<span>Pulse</span></a>
+
+            @* Recherche globale : simple GET vers le catalogue (fonctionne sans circuit) *@
+            <form class="header-search" method="get" action="/catalog" role="search">
+                <label class="visually-hidden" for="header-q">Rechercher un produit</label>
+                <input id="header-q" type="search" name="q" placeholder="Rechercher un produit…" />
+                @* Pas de sp-btn--primary ici : ce sélecteur désigne le CTA d'ajout au panier
+                   (contrat avec les tests E2E). *@
+                <button type="submit" class="search-btn">Rechercher</button>
+            </form>
+
+            <div class="header-actions">
+                <CartBadge @rendermode="InteractiveServer" />
+            </div>
+        </div>
+
+        <nav class="main-nav" aria-label="Principal">
+            <a href="/">Accueil</a>
+            <a href="/catalog">@L["CatalogTitle"]</a>
+            <a href="/cart">@L["CartTitle"]</a>
+            <a href="checkout">Commande</a>
+        </nav>
+    </header>
 
     <main id="main" tabindex="-1">
-        <header>
-            <div class="top-row px-4">
-                <CartBadge @rendermode="InteractiveServer" />
-                <LanguageSwitcher />
-                <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-            </div>
-        </header>
-
-        <article class="content px-4">
+        <article class="content">
             @Body
         </article>
-
-        <footer>
-            <small>ShopPulse — cours Frontend Engineering (.NET 10, Blazor Server).</small>
-        </footer>
     </main>
+
+    @* ===== Pied de page riche (colonnes + mentions) ===== *@
+    <footer class="shop-footer">
+        <div class="footer-columns">
+            <section>
+                <h2>ShopPulse</h2>
+                <p>Boutique high-tech : claviers, écrans et audio sélectionnés.
+                   Prix nets, stock en temps réel, expédition soignée.</p>
+            </section>
+            <section>
+                <h2>Boutique</h2>
+                <ul>
+                    <li><a href="/catalog">@L["CatalogTitle"]</a></li>
+                    <li><a href="/catalog?sort=promo">Promotions</a></li>
+                    <li><a href="/catalog?sort=newest">Nouveautés</a></li>
+                </ul>
+            </section>
+            <section>
+                <h2>Mon espace</h2>
+                <ul>
+                    <li><a href="account">@L["AccountTitle"]</a></li>
+                    <li><a href="/account/orders">@L["MyOrders"]</a></li>
+                    <li><a href="/cart">@L["CartTitle"]</a></li>
+                </ul>
+            </section>
+            <section>
+                <h2>Garanties</h2>
+                <ul>
+                    <li>Paiement sécurisé (Stripe)</li>
+                    <li>Garantie 2 ans</li>
+                    <li>Livraison offerte dès 60 €</li>
+                </ul>
+            </section>
+        </div>
+        <div class="footer-legal">
+            <small>© 2026 ShopPulse — Démo e-commerce .NET 10 &amp; Blazor Server.
+                   Les prix affichés sont TTC ; la livraison est calculée lors de la commande.</small>
+        </div>
+    </footer>
 </div>
 
 @* Îlot invisible : persistance et synchronisation du panier entre onglets *@
@@ -48,7 +121,7 @@
 <LiveRegion />
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
+    Une erreur inattendue est survenue.
+    <a href="." class="reload">Recharger</a>
     <span class="dismiss">🗙</span>
 </div>
