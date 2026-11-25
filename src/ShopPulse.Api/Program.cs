@@ -424,11 +424,28 @@ admin.MapGet("/orders", async (string? status, EfOrderService orders, Cancellati
 
 admin.MapPut("/orders/{id:guid}/status", async (Guid id, SetOrderStatusRequest req,
        EfOrderService orders, ShopPulse.Application.IOrderEmailSender emails,
+       ShopPulse.Application.IPaymentGateway gateway,
        IStockPublisher publisher, HybridCache cache,
        ILogger<Program> logger, CancellationToken ct) =>
 {
        if (!Enum.TryParse<OrderStatus>(req.Status, ignoreCase: true, out var status))
               return (IResult)Results.BadRequest(new { error = $"Statut inconnu : « {req.Status} »." });
+
+       // Annulation d'une commande PAYÉE : rembourser AVANT de changer le statut.
+       // Si le remboursement échoue, on ne touche à rien (409, réessayable) —
+       // jamais de commande annulée avec l'argent conservé sans action manuelle.
+       if (status == OrderStatus.Cancelled
+              && await orders.FindByIdAsync(id, ct) is { Status: OrderStatus.Paid } paid)
+       {
+              var refund = await gateway.RefundAsync(paid, ct);
+              if (refund.Status == ShopPulse.Application.RefundStatus.Failed)
+              {
+                     logger.LogWarning("Remboursement refusé pour la commande {OrderId} : {Error}",
+                            id, refund.Error);
+                     return (IResult)Results.Conflict(new { error = $"Remboursement impossible : {refund.Error}" });
+              }
+              logger.LogInformation("Commande {OrderId} remboursée ({Result}).", id, refund.Status);
+       }
 
        var result = await orders.SetStatusAsync(id, status, ct);
        if (result.Error is not null)
@@ -534,3 +551,6 @@ static async Task<IResult> ConfirmPaidAsync(Guid orderId, EfOrderService orders,
        }
        return Results.Ok(result.Order);
 }
+
+// Rend le Program des top-level statements visible pour WebApplicationFactory (tests d'intégration).
+public partial class Program;

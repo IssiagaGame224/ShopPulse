@@ -12,11 +12,13 @@ namespace ShopPulse.Infrastructure;
 ///   webhook signé (HandleWebhookAsync) fait foi.</summary>
 public sealed class StripePaymentGateway : IPaymentGateway
 {
+       private readonly string _secretKey;
        private readonly string _webhookSecret;
        private readonly PaymentIntentService _intents;
 
        public StripePaymentGateway(string secretKey, string publishableKey, string webhookSecret)
        {
+              _secretKey = secretKey;
               PublishableKey = publishableKey;
               _webhookSecret = webhookSecret;
               _intents = new PaymentIntentService(new StripeClient(secretKey));
@@ -53,6 +55,29 @@ public sealed class StripePaymentGateway : IPaymentGateway
               }
               return Task.FromResult<Guid?>(null);   // événement ignoré (accusé 200 quand même)
        }
+
+       public async Task<RefundResult> RefundAsync(Order order, CancellationToken ct = default)
+       {
+              if (order.PaymentIntentId is null)
+                     return RefundResult.Nothing;    // jamais payée en ligne : rien à rembourser
+              try
+              {
+                     var refunds = new RefundService(new StripeClient(_secretKey));
+                     await refunds.CreateAsync(
+                            new RefundCreateOptions { PaymentIntent = order.PaymentIntentId },
+                            // Idempotence : rejouer l'annulation ne rembourse pas deux fois.
+                            new RequestOptions { IdempotencyKey = $"refund-{order.Id:N}" }, ct);
+                     return RefundResult.Ok;
+              }
+              catch (StripeException ex) when (ex.StripeError?.Code == "charge_already_refunded")
+              {
+                     return RefundResult.Ok;         // déjà remboursée : idempotent
+              }
+              catch (StripeException ex)
+              {
+                     return RefundResult.Failed(ex.Message);
+              }
+       }
 }
 
 /// <summary>Simulateur de développement (aucune clé Stripe configurée) : la boucle
@@ -70,4 +95,9 @@ public sealed class FakePaymentGateway : IPaymentGateway
 
        public Task<Guid?> HandleWebhookAsync(string payload, string? signatureHeader, CancellationToken ct = default) =>
               Task.FromResult<Guid?>(null);
+
+       /// <summary>Remboursement simulé : toujours réussi (la boucle annulation → restock
+       /// reste testable sans compte Stripe).</summary>
+       public Task<RefundResult> RefundAsync(Order order, CancellationToken ct = default) =>
+              Task.FromResult(order.PaymentIntentId is null ? RefundResult.Nothing : RefundResult.Ok);
 }

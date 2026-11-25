@@ -28,6 +28,19 @@ public interface IPaymentGateway
        /// <summary>Valide la signature du webhook et retourne l'id de la commande payée ;
        /// null si l'événement n'est pas une confirmation. Lève si la signature est invalide.</summary>
        Task<Guid?> HandleWebhookAsync(string payload, string? signatureHeader, CancellationToken ct = default);
+
+       /// <summary>Rembourse intégralement une commande payée (annulation). Idempotent
+       /// côté Stripe (clé = id de commande). Sans paiement associé : NothingToRefund.</summary>
+       Task<RefundResult> RefundAsync(Order order, CancellationToken ct = default);
+}
+
+public enum RefundStatus { Refunded, NothingToRefund, Failed }
+
+public sealed record RefundResult(RefundStatus Status, string? Error = null)
+{
+       public static readonly RefundResult Ok = new(RefundStatus.Refunded);
+       public static readonly RefundResult Nothing = new(RefundStatus.NothingToRefund);
+       public static RefundResult Failed(string error) => new(RefundStatus.Failed, error);
 }
 
 /// <summary>Port de paiement côté Web : le tunnel demande une session à l'API,
