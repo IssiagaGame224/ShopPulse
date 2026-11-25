@@ -1,0 +1,87 @@
+# CI ShopPulse (chapitre docs/27) — deux jobs sur chaque PR vers main et chaque push sur main :
+#   1. build + tests rapides (architecture, intégration avec PostgreSQL Testcontainers
+#      et Keycloak en conteneur)
+#   2. E2E Playwright + axe-core contre la pile complète docker-compose (comme en local)
+# Les deux statuts sont requis pour fusionner une PR (protection de branche).
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build + tests rapides
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build (Release, avertissements = erreurs)
+        run: dotnet build ShopPulse.slnx -c Release
+
+      - name: Tests d'architecture (NetArchTest)
+        run: dotnet test tests/ShopPulse.Architecture.Tests -c Release --no-build
+
+      - name: Keycloak (realm importé) pour les tests d'intégration
+        run: |
+          docker compose up -d keycloak
+          for i in $(seq 1 40); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/realms/shoppulse/.well-known/openid-configuration || true)
+            [ "$code" = "200" ] && exit 0
+            sleep 3
+          done
+          echo "Keycloak n'est pas prêt à temps"; exit 1
+
+      - name: Tests d'intégration API (WebApplicationFactory + Testcontainers PostgreSQL)
+        run: dotnet test tests/ShopPulse.Api.Tests -c Release --no-build
+
+  e2e:
+    name: E2E + A11y (pile complète)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build (Release)
+        run: dotnet build ShopPulse.slnx -c Release
+
+      - name: Pile complète (db, keycloak, mailpit, api, web)
+        run: |
+          docker compose up -d --build db keycloak mailpit api web
+          for i in $(seq 1 60); do
+            api=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5299/health/live || true)
+            web=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5026/fr || true)
+            [ "$api" = "200" ] && [ "$web" = "200" ] && exit 0
+            sleep 5
+          done
+          echo "La pile n'est pas prête à temps"
+          docker compose logs --tail 50 api web
+          exit 1
+
+      - name: Navigateurs Playwright (Chromium)
+        run: pwsh tests/ShopPulse.E2E/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+
+      - name: Tests E2E (tunnel d'achat, compte, admin, CSP…)
+        run: dotnet test tests/ShopPulse.E2E -c Release --no-build
+
+      - name: Tests d'accessibilité (axe-core, 5 pages × 3 langues)
+        run: dotnet test tests/ShopPulse.A11y -c Release --no-build
+
+      - name: Journaux des conteneurs en cas d'échec
+        if: failure()
+        run: docker compose logs --tail 100 api web
