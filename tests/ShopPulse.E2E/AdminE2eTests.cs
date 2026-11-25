@@ -30,14 +30,17 @@ public class AdminE2eTests : IAsyncLifetime
        [Fact]
        public async Task Admin_changes_order_status_and_edits_product()
        {
-              // Une commande « en attente » garantie (créée en invité via l'API).
+              // Une commande « en attente » garantie (créée en invité via l'API), sur un
+              // produit choisi EN STOCK : les runs répétés décrémentent le stock — un id
+              // fixe finirait à 0 et échouerait en 409 sans rapport avec le code testé.
+              var productId = await TestCatalog.InStockProductIdAsync(_http, ApiUrl, skip: 2);
               var order = await _http.PostAsJsonAsync($"{ApiUrl}/api/orders", new
               {
                      email = "backoffice@example.fr",
                      fullName = "Test Back-office",
                      address = "8 rue de l'Admin",
                      postalCode = "69003",
-                     lines = new[] { new { productId = 10, quantity = 1 } },
+                     lines = new[] { new { productId, quantity = 1 } },
               });
               order.EnsureSuccessStatusCode();
 

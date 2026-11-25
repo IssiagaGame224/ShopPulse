@@ -1,0 +1,26 @@
+# Prometheus — scraping des métriques ShopPulse (chapitre docs/26).
+# Les services api/web exposent /metrics (exportateur OpenTelemetry, docs/22).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - alert.rules.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: "shoppulse-api"
+    static_configs:
+      - targets: ["api:8080"]
+
+  - job_name: "shoppulse-web"
+    static_configs:
+      - targets: ["web:8080"]
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

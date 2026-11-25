@@ -8,12 +8,14 @@ namespace ShopPulse.A11y;
 /// <summary>
 /// Exercice 2 (module 8) : axe-core détecte 30-40 % des problèmes d'accessibilité
 /// (contraste, noms manquants, rôles invalides). Il ne remplace ni le clavier ni le
-/// lecteur d'écran. Exige les serveurs de dev : API (5299) + Web (5026).
+/// lecteur d'écran. Exige les serveurs de dev : API (5299) + Web (5026) —
+/// cible configurable via SHOPPULSE_WEBURL.
 /// Nécessite les navigateurs Playwright : pwsh bin/Debug/net10.0/playwright.ps1 install chromium
 /// </summary>
 public class A11yTests : IAsyncLifetime
 {
-       private const string BaseUrl = "http://localhost:5026";
+       private static readonly string BaseUrl =
+              Environment.GetEnvironmentVariable("SHOPPULSE_WEBURL") ?? "http://localhost:5026";
        private IPlaywright _pw = default!;
        private IBrowser _browser = default!;
 

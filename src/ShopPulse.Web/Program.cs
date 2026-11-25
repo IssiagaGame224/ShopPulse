@@ -1,4 +1,6 @@
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 using ShopPulse.Application;
 using ShopPulse.Features.Account;
@@ -132,12 +134,23 @@ builder.Services.AddLocalization();
 builder.Services.AddHealthChecks()
     .AddUrlGroup(new Uri(new Uri(builder.Configuration["Api:BaseUrl"]!), "health"), name: "api");
 
-// Métriques OpenTelemetry (format Prometheus sur /metrics).
+// Métriques OpenTelemetry (format Prometheus sur /metrics) et traces distribuées
+// (docs/25) : export OTLP vers un collecteur (Jaeger) seulement si
+// OTEL_EXPORTER_OTLP_ENDPOINT est configuré — le contexte de trace se propage
+// automatiquement à l'API via l'en-tête traceparent (instrumentation HttpClient).
 builder.Services.AddOpenTelemetry()
+    .ConfigureResource(r => r.AddService("ShopPulse.Web"))
     .WithMetrics(m => m
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
-        .AddPrometheusExporter());
+        .AddPrometheusExporter())
+    .WithTracing(t =>
+    {
+        t.AddAspNetCoreInstrumentation()
+         .AddHttpClientInstrumentation();
+        if (builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] is not null)
+            t.AddOtlpExporter();
+    });
 // Annonces aux lecteurs d'écran (région live unique dans le layout).
 builder.Services.AddScoped<ILiveAnnouncer, LiveAnnouncer>();
 // Module 6 — Networking : l'interface parle à l'API via un HttpClient typé et résilient.

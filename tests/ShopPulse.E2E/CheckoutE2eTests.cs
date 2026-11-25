@@ -20,11 +20,11 @@ public class CheckoutE2eTests : IAsyncLifetime
               Environment.GetEnvironmentVariable("SHOPPULSE_APIURL") ?? "http://localhost:5299";
        private static readonly string MailpitUrl =
               Environment.GetEnvironmentVariable("SHOPPULSE_MAILPITURL") ?? "http://localhost:8025";
-       private const int ProductId = 2;
 
        private IPlaywright _pw = default!;
        private IBrowser _browser = default!;
        private readonly HttpClient _http = new();
+       private int _productId;   // choisi en stock au début du test (les runs vident le stock)
 
        public async Task InitializeAsync()
        {
@@ -35,10 +35,11 @@ public class CheckoutE2eTests : IAsyncLifetime
        [Fact]
        public async Task Checkout_places_order_decrements_stock_and_sends_email()
        {
+              _productId = await TestCatalog.InStockProductIdAsync(_http, ApiUrl, skip: 0);
               var stockBefore = await GetStockAsync();
 
               var page = await _browser.NewPageAsync();
-              await page.GotoAsync($"{WebUrl}/fr/product/{ProductId}");
+              await page.GotoAsync($"{WebUrl}/fr/product/{_productId}");
               await page.WaitForSelectorAsync("button.sp-btn--primary");
 
               // Le clic n'est pris en compte qu'une fois le circuit SignalR connecté :
@@ -95,7 +96,7 @@ public class CheckoutE2eTests : IAsyncLifetime
 
        private async Task<int> GetStockAsync()
        {
-              var product = await _http.GetFromJsonAsync<JsonElement>($"{ApiUrl}/api/products/{ProductId}");
+              var product = await _http.GetFromJsonAsync<JsonElement>($"{ApiUrl}/api/products/{_productId}");
               return product.GetProperty("stock").GetInt32();
        }
 

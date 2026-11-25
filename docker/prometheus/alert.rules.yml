@@ -1,0 +1,41 @@
+# Règles d'alerte ShopPulse (chapitre docs/26).
+# Trois familles : disponibilité (up), taux d'erreurs 5xx, latence p95.
+groups:
+  - name: shoppulse
+    rules:
+      # Un service qui ne répond plus au scraping : la boutique est en panne
+      # ou en cours de démarrage anormal.
+      - alert: ServiceDown
+        expr: up{job=~"shoppulse-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Le service {{ $labels.job }} ne répond plus"
+          description: "La cible {{ $labels.instance }} est injoignable depuis plus d'une minute."
+
+      # Plus de 5 % de réponses 5xx sur 5 minutes : régression applicative
+      # ou dépendance en échec (base, Keycloak).
+      - alert: HighHttp5xxRate
+        expr: |
+          sum by (job) (rate(http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[5m]))
+            /
+          sum by (job) (rate(http_server_request_duration_seconds_count[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taux de 5xx élevé sur {{ $labels.job }}"
+          description: "Plus de 5 % des requêtes répondent 5xx depuis 5 minutes."
+
+      # p95 au-dessus de 1 s sur 10 minutes : lenteur perceptible utilisateur.
+      - alert: SlowRequestsP95
+        expr: |
+          histogram_quantile(0.95,
+            sum by (job, le) (rate(http_server_request_duration_seconds_bucket[10m]))) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latence p95 > 1 s sur {{ $labels.job }}"
+          description: "Le 95e percentile des requêtes dépasse 1 s depuis 10 minutes."

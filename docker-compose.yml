@@ -45,12 +45,22 @@ services:
     ports:
       - "8080:8080"
 
+  # Traces distribuées (chapitre docs/25) : collecteur + UI Jaeger.
+  # Les services api/web y exportent leurs spans en OTLP (gRPC, port 4317 interne).
+  # UI : http://localhost:16686
+  jaeger:
+    image: jaegertracing/jaeger:latest
+    ports:
+      - "16686:16686"   # UI web
+      - "4317:4317"     # OTLP gRPC (pour un dotnet run local)
+
   api:
     build:
       context: .
       dockerfile: src/ShopPulse.Api/Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
       # Conteneur → conteneur : le DNS « db » est résolu par le réseau compose.
       ConnectionStrings__ShopPulse: Host=db;Port=5432;Database=shoppulse;Username=shoppulse;Password=dev-password-shoppulse
       Store__Currency: EUR
@@ -69,6 +79,50 @@ services:
       db:
         condition: service_healthy
 
+  # Sauvegardes PostgreSQL (chapitre docs/23) : pg_dump périodique vers le volume
+  # pgbackups, rétention de 7 archives. Déclenchement manuel :
+  #   docker compose exec backup sh /usr/local/bin/sp-backup.sh --once
+  # Procédure de restauration : docs/23-sauvegardes-postgresql.md.
+  backup:
+    image: postgres:17-alpine
+    command: sh /usr/local/bin/sp-backup.sh
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGUSER: shoppulse
+      PGPASSWORD: dev-password-shoppulse
+      PGDATABASE: shoppulse
+      BACKUP_INTERVAL: "86400"   # 24 h — abaisser pour tester
+      BACKUP_RETENTION: "7"
+    volumes:
+      - ./docker/postgres/backup.sh:/usr/local/bin/sp-backup.sh:ro
+      - pgbackups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Alerting (chapitre docs/26) : Prometheus scrape /metrics des services et
+  # évalue les règles d'alerte ; Alertmanager notifie par email via Mailpit.
+  # UI Prometheus : http://localhost:9090 — Alertmanager : http://localhost:9093
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ./docker/prometheus:/etc/prometheus:ro
+    ports:
+      - "9090:9090"
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    volumes:
+      - ./docker/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
+    depends_on:
+      - mailpit
+
   # Capture SMTP de développement : aucun email ne sort, tout est lisible dans l'UI web.
   mailpit:
     image: axllent/mailpit:latest
@@ -82,6 +136,7 @@ services:
       dockerfile: src/ShopPulse.Web/Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
       # Conteneur → conteneur pour l'API ; navigateur → localhost:5026 pour le circuit.
       Api__BaseUrl: http://api:8080/
       # Métadonnées OIDC via le réseau interne ; émetteur validé = URL publique.
@@ -105,3 +160,4 @@ services:
 volumes:
   dataprotection-keys:
   pgdata:
+  pgbackups:

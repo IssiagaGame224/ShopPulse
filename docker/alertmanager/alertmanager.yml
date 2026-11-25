@@ -1,0 +1,21 @@
+# Alertmanager — notification par email via Mailpit (chapitre docs/26).
+# En développement, Mailpit capture tout : les alertes se lisent dans son UI
+# (http://localhost:8025). En production : remplacer smarthost/from/to par le
+# relais réel, ou ajouter un receiver webhook (Slack, PagerDuty…).
+global:
+  smtp_smarthost: "mailpit:1025"
+  smtp_from: "alertmanager@shoppulse.local"
+  smtp_require_tls: false
+
+route:
+  receiver: "mailpit"
+  group_by: ["alertname", "job"]
+  group_wait: 10s          # délai avant le premier envoi d'un groupe
+  group_interval: 1m
+  repeat_interval: 15m     # rappel tant que l'alerte reste active
+
+receivers:
+  - name: "mailpit"
+    email_configs:
+      - to: "boutique@shoppulse.local"
+        send_resolved: true   # un email est aussi envoyé quand l'alerte se résout

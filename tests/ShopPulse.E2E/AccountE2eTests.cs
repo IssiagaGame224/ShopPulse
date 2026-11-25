@@ -17,7 +17,6 @@ public class AccountE2eTests : IAsyncLifetime
               Environment.GetEnvironmentVariable("SHOPPULSE_WEBURL") ?? "http://localhost:5026";
        private static readonly string ApiUrl =
               Environment.GetEnvironmentVariable("SHOPPULSE_APIURL") ?? "http://localhost:5299";
-       private const int ProductId = 9;   // produit en stock (les ids multiples de 7 sont à 0)
 
        private IPlaywright _pw = default!;
        private IBrowser _browser = default!;
@@ -47,9 +46,11 @@ public class AccountE2eTests : IAsyncLifetime
               Assert.Contains("client", await page.TextContentAsync("dl"));
 
               // 2. Parcours d'achat connecté (navigation améliorée : même circuit).
+              // Produit choisi EN STOCK au moment du test (les runs répétés vident le stock).
+              var productId = await TestCatalog.InStockProductIdAsync(_http, ApiUrl, skip: 1);
               await page.ClickAsync("a[href='/catalog']");
-              await page.WaitForSelectorAsync($"a[href='/product/{ProductId}']");
-              await page.ClickAsync($"a[href='/product/{ProductId}']");
+              await page.WaitForSelectorAsync($"a[href='/product/{productId}']");
+              await page.ClickAsync($"a[href='/product/{productId}']");
               await page.WaitForSelectorAsync("button.sp-btn--primary");
               // Clic pris en compte seulement une fois le circuit connecté : badge à 1, avec retry.
               for (var attempt = 0; attempt < 4; attempt++)

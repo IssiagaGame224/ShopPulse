@@ -1,128 +1,318 @@
 # AGENTS.md — Projet ShopPulse
 
-## Vue d'ensemble du projet
+> Fichier destiné aux agents de codage IA. Il suppose que le lecteur ne connaît
+> rien du projet. Tout le contenu du projet (code, commentaires, documentation,
+> interface) est en **français** : rédiger dans cette langue.
 
-Ce répertoire est à la fois **un espace d'apprentissage** (cours + projet fil rouge construit module par module) et **une matière première pour un livre informatique** : après chaque étape/module terminé et vérifié, un chapitre de documentation est rédigé dans `docs/`. Tout le contenu est en français.
+## 1. Vue d'ensemble du projet
 
-ShopPulse est le « projet fil rouge » d'un cours complet de *Frontend Engineering* : **« Frontend Engineering avec .NET 10 et Blazor Server — 8 domaines, 160 concepts »** (document du 16 novembre 2026). ShopPulse est une mini-boutique (catalogue, fiche produit, panier, tableau de bord de stock en temps réel, back-office) que chaque module du cours enrichit, jusqu'à obtenir une application modulaire, sécurisée, accessible et multilingue (français, anglais, arabe).
+ShopPulse est une **boutique e-commerce complète** construite avec **.NET 10,
+Blazor Server et PostgreSQL** : catalogue, fiche produit, panier, tunnel de
+commande avec paiement Stripe, comptes clients (Keycloak/OIDC), back-office
+(rôle `stock-manager`), stock temps réel (SignalR), emails transactionnels
+(Mailpit en dev), accessibilité WCAG 2.2 AA et internationalisation fr/en/ar.
 
-L'état d'avancement : **COURS COMPLET + BONUS DÉPLOIEMENT + TRANSFORMATION EN VRAIE BOUTIQUE TERMINÉE** — 8 modules (160 concepts) + Docker Compose vérifié. Chapitres `docs/00` à `docs/09` + plan de manuscrit `docs/10-plan-de-manuscrit.md`. Feuille de route « vraie boutique » **6 phases + refonte design, toutes terminées** : **phases 1 à 5** — (1) PostgreSQL 17 + EF Core 10.0.15, migrations au démarrage, service `db` dans compose (`docs/11`) ; (2) catégories relationnelles, filtres/pagination SQL, décrément de stock atomique (`docs/12`) ; (3) commandes persistées (instantanés, prix serveur, transaction, idempotence `Idempotency-Key`, emails Mailpit, `docs/13`) ; (4) comptes clients (JWT bearer `MapInboundClaims=false`, `UserId`=sub, `/orders/me`, 404 anti-énumération, RCL Account, `AuthorizeRouteView`, propagation jeton Web→API en circuit, cookie `__Host-` à `Path=/`, `client`/`client1234`, `docs/14`) ; (5) back-office (produit enrichi `Sku`/`OldPrice`/`Features` jsonb/`Id` identity, `/api/admin/*` sous `CanManageStock`, machine de statuts + emails, RCL Admin, `docs/15`) ; **refonte design e-commerce** (`docs/16`, fiche type joutech.ma : fil d'Ariane, promos, specs, liés, accueil vitrine, panier détaillé — axe 5/5) ; (6) **paiement Stripe** (`docs/17`) : `IPaymentGateway` interchangeable (Stripe.net 49.2.0 si `Stripe:SecretKey` configuré, sinon simulateur dev + `/fake-confirm` mappé seulement dans ce mode), Payment Intent idempotent (clé = orderId, montant depuis la commande persistée), **webhook signé = seule preuve** (Pending→Paid idempotent + email), Payment Element monté post-rendu + sondage jusqu'à Paid, CSP ouverte à Stripe. E2E 4/4, archi 14/14, axe 5/5. Chemin Stripe réel non vérifié faute de clés (commandes user-secrets dans `docs/17`). (7) **livraison + TVA + restock** (`docs/18`) : `StoreConfig` (port 5,90 EUR offert dès 60 EUR, TVA 20 % TTC) partagé API/Web via `/api/store/config`, `Order.ShippingCost/TaxRate` en instantanés, panier avec port réel + progression, restock atomique à l'annulation (même transaction, SignalR + cache), `DesignTimeDbContextFactory` (dotnet ef depuis Infrastructure), E2E à cibles configurables (`SHOPPULSE_APIURL`/`SHOPPULSE_WEBURL`), `scripts/dev.ps1`. (8) **observabilité** (`docs/19`) : `/health` JSON sur API (NpgSql + Keycloak) et Web (API), Serilog structuré (Application + TraceId, `using Serilog` rend `ILogger` ambigu — qualifier). (9) **remboursement + tests d'intégration + finitions** (`docs/20`) : `IPaymentGateway.RefundAsync` (idempotent, rembourser AVANT la transition), `tests/ShopPulse.Api.Tests` (WebApplicationFactory + Testcontainers, 16 tests — piège : le HttpClient de la factory route tout en mémoire, Keycloak exige un vrai HttpClient), tri catalogue SQL (`?sort=`), pagination admin (25/page), suivi invité signé HMAC temps constant (`/track/{id}?sig=`, lien dans l'email), i18n pages compte (22 clés × 3). (10) **refresh token + Outbox + sondes** (`docs/21`) : `UserTokenStore.GetValidTokenAsync` (refresh avec verrou + marge 60 s, vérifié realm à 60 s — preuve en base), pattern Outbox (`outbox_messages` écrit dans la transaction métier, `OutboxWorker` poll 2 s, retry ×5, reprise après panne SMTP démontrée), `/health/live` vs `/health`. E2E robustifiés (clic panier en boucle jusqu'au badge, Mailpit en sondage). (11) **CSP appliquée + i18n admin + métriques** (`docs/22`) : `Content-Security-Policy` bloquante (nonce sur JSON-LD, E2E/axe 5/5 en navigateur réel), back-office trilingue (40 clés × 3), OpenTelemetry métriques Prometheus sur `/metrics` (API + Web). (12) **refonte design production** (`docs/16` étendu) : layout e-commerce type joutech.ma — barre promo + en-tête (logo, recherche globale GET /catalog, panier) + nav horizontale + footer 4 colonnes, bandeau de réassurance accueil ; pages d'exemple SUPPRIMÉES (catalog-virtual, styleguide, sidebar NavMenu). Pièges : le bouton Rechercher ne doit PAS porter sp-btn--primary (sélecteur E2E du CTA panier) ; l'importmap .NET exige `<ImportMap nonce=…>` sous CSP bloquante ; #blazor-error-ui à masquer en CSS. Évolutions possibles : traces OTel vers collecteur, alerting, hashes CSP styles, sauvegardes PostgreSQL. Pile : `docker compose up -d` (5026/5299/8080/5432/8025) ou `dotnet run` (base via `docker compose up -d db mailpit`). Ce fichier documente l'architecture et les conventions du cours pour qu'un agent qui interviendrait ici connaisse le contexte.
+Le répertoire est à la fois :
 
-## Contenu du répertoire
+- **un espace d'apprentissage** : le projet était le fil rouge du cours
+  « Frontend Engineering avec .NET 10 et Blazor Server — 8 domaines, 160
+  concepts » (`ShopPulse_Cours_261117_141854.pdf`, 100 pages, extractible par
+  `pdftotext` ; `frontend_engineering_160_concepts.md` liste les concepts) ;
+- **une matière première pour un livre** : chaque étape terminée et vérifiée a
+  donné un chapitre dans `docs/`, puis un manuscrit complet dans
+  `docs/manuscrit/` (chapitres 01 à 10 + conclusion) et `Livre/` (versions
+  illustrées par chapitre + PDF final).
 
-| Fichier | Nature |
-|---|---|
-| `ShopPulse_Cours_261117_141854.pdf` | Cours complet (100 pages) : les 8 modules, le code du fil rouge, les récapitulatifs et exercices. C'est la source de vérité principale. |
-| `ShopPulse Architecture Universelle.pdf` | Diaporama de 19 planches (images uniquement, sans texte extractible) illustrant le module 8 : accessibilité, internationalisation et inclusion. |
-| `frontend_engineering_160_concepts.md` | La liste des 8 domaines × 20 concepts du cours (titres en anglais, commentaires en français). |
-| `src/` + `tests/` + `ShopPulse.slnx` | Solution modulaire créée au module 4 (monolithe modulaire) : Domain, SharedKernel, Application, Infrastructure, Modularity, UI (RCL design system), Features.Catalog/Cart/Checkout (RCL), Web (hôte), Api, Contracts, tests (NetArchTest + pluriels + axe + **E2E Playwright du tunnel de commande**). Voir `docs/04-architecture.md`. |
-| `docker-compose.yml` + Dockerfiles | Bonus déploiement (chapitre `docs/09`) : **PostgreSQL (`db`)** + **Mailpit** (capture SMTP) + Keycloak + API + Web en conteneurs, DNS split-horizon résolu (`--hostname-backchannel-dynamic`). `docker compose up -d --build` pour toute la pile (ports 5026/5299/8080/5432/8025). |
-| `docs/` | Documentation rédigée au fil des modules — un chapitre `.md` par étape/module, chaque concept abordé y est expliqué (matière première du livre). Format : `00` … `09` + `10-plan-de-manuscrit.md` + `11-boutique-reelle-*.md` (transformation en vraie boutique, par phase) + `manuscrit/` : `apropos-de-lauteur.md` (Issiaga Soumah), `chapitre-01.md` à `chapitre-10.md`, `conclusion.md` (**manuscrit complet**, calibré débutant). |
-| `src/ShopPulse.Web/wwwroot/img/` | Photos produit réelles (p0-p9.jpg, 1024²) classées par catégorie ; `InMemoryProductService` génère noms descriptifs et `alt` (module 8). |
-| `AGENTS.md` | Le présent fichier. |
+**État d'avancement : projet terminé.** Les 8 modules du cours (160 concepts),
+le bonus déploiement Docker, puis la transformation en vraie boutique en 6
+phases + refonte design sont achevés et vérifiés :
 
-## Pile technologique et architecture cible
+1. PostgreSQL 17 + EF Core 10 (migrations au démarrage) — `docs/11`
+2. Catégories relationnelles, filtres/pagination/tri SQL, décrément de stock
+   atomique — `docs/12`
+3. Commandes persistées (prix recalculés serveur, transaction, idempotence par
+   `Idempotency-Key`, emails Mailpit) — `docs/13`
+4. Comptes clients (JWT bearer `MapInboundClaims=false`, `UserId`=sub,
+   `/orders/me`, 404 anti-énumération, propagation du jeton Web→API en
+   circuit, cookie `__Host-` à `Path=/`) — `docs/14`
+5. Back-office (produit enrichi `Sku`/`OldPrice`/`Features` jsonb, `/api/admin/*`
+   sous `CanManageStock`, machine de statuts + emails) — `docs/15`
+6. Paiement Stripe (`IPaymentGateway` interchangeable : Stripe.net 49.2.0 si
+   `Stripe:SecretKey` configuré, sinon simulateur dev ; Payment Intent
+   idempotent ; **webhook signé = seule preuve de paiement** ; le chemin Stripe
+   réel n'a pas été vérifié faute de clés) — `docs/17`
 
-- **Runtime cible : .NET 10 (`net10.0`), C# 14, Blazor Server** (Static SSR + `InteractiveServer` via circuit SignalR). Aucun C# ne s'exécute dans le navigateur.
-- Le mode de rendu se choisit **par page ou par composant** (`@rendermode InteractiveServer`) ; ne jamais tout rendre interactif par défaut.
-- Prérequis du cours : SDK .NET 10, Visual Studio / Rider / VS Code, Node.js (outils JS), Docker (optionnel : Keycloak, Redis), navigateur Chromium pour les tests.
-- Les API .NET évoluent d'une version à l'autre : vérifier dans la documentation .NET 10 toute API dépendant de la version avant de s'y fier.
+Plus : refonte design e-commerce (`docs/16`), livraison + TVA + restock
+(`docs/18`), observabilité health checks + Serilog (`docs/19`), remboursements
++ tests d'intégration + suivi invité signé HMAC (`docs/20`), refresh token +
+pattern Outbox + sondes live/ready (`docs/21`), CSP appliquée + i18n admin +
+métriques Prometheus (`docs/22`), **sauvegardes PostgreSQL** (service `backup`
+dans compose : pg_dump quotidien format custom, écriture atomique tmp+mv,
+vérification `pg_restore --list`, rétention 7, restauration prouvée par
+comptages — `docs/23`), **CSP `style-src 'self'`** (plus d'`unsafe-inline` —
+aucun style inline dans l'app ; 2 tests E2E CSP permanents ; cookie `sp_locale`
+enfin implémenté : les URL sans préfixe recevaient la culture de l'OS — clés
+brutes en conteneur ; course panier/`CartSync` corrigée dans le tunnel ;
+E2E 7/7, axe 5/5 — `docs/24`), **traces distribuées OTel → Jaeger** (spans
+ASP.NET Core + HttpClient + `AddSource("Npgsql")`, export OTLP conditionné par
+`OTEL_EXPORTER_OTLP_ENDPOINT`, `ConfigureResource(AddService)` sinon
+`unknown_service:dotnet` ; service `jaeger` dans compose, UI 16686, API de
+requête `/api/v3/traces` ; trace Web→API→SQL vérifiée — `docs/25`), **alerting
+Prometheus + Alertmanager** (scrape de `/metrics`, 3 règles — `ServiceDown`,
+`HighHttp5xxRate`, `SlowRequestsP95` — notification email via Mailpit, chaîne
+prouvée par arrêt réel du conteneur web : `[FIRING]` reçu dans Mailpit ;
+configs dans `docker/prometheus/` et `docker/alertmanager/` — `docs/26`).
+Les tests E2E choisissent leurs produits en stock dynamiquement
+(`TestCatalog`, skip par classe) — les ids fixes finissaient à stock 0.
 
-### Structure de solution visée (monolithe modulaire)
+Évolutions possibles (non faites) : alertes métier (stock bas, ancienneté du
+dernier dump), backend de traces persistant, sauvegarde externalisée (règle 3-2-1).
 
-Le cours migre le projet initial vers une solution `ShopPulse.slnx` (format par défaut de .NET 10) organisée ainsi :
+## 2. Structure du dépôt
+
+Solution **monolithe modulaire** au format `ShopPulse.slnx` (format par défaut
+de .NET 10), avec versions NuGet centralisées (`Directory.Packages.props`) et
+propriétés communes (`Directory.Build.props` : `net10.0`, C# 14,
+`Nullable`/`ImplicitUsings` activés, `TreatWarningsAsErrors=true`, audit
+NuGet bloquant sur vulnérabilités ≥ moderate).
 
 ```
-ShopPulse.slnx
-Directory.Build.props        # net10.0, Nullable/ImplicitUsings enable,
-                             # TreatWarningsAsErrors=true, LangVersion 14
-Directory.Packages.props     # versions centralisées des paquets NuGet
 src/
-  ShopPulse.Domain/          # classlib : modèles, aucune référence ASP.NET
-  ShopPulse.Application/
-  ShopPulse.Infrastructure/
-  ShopPulse.UI/              # Razor Class Library : design system
-                             # (jetons CSS --sp-*, composants Atomic Design)
-  ShopPulse.Features.Catalog/    # RCL : pages et composants du catalogue
-  ShopPulse.Features.Cart/       # RCL : panier
-  ShopPulse.Features.Checkout/   # RCL : tunnel de commande
-  ShopPulse.Contracts/       # DTO partagés (records) — module 6
-  ShopPulse.Api/             # Minimal API : /api/products, /api/stock,
-                             # /hubs/stock (SignalR StockHub) — module 6
-  ShopPulse.Web/             # hôte Blazor : assemble les modules via
-                             # IShopModule + ModuleCatalog + AddAdditionalAssemblies
+  ShopPulse.Domain/            # Modèles purs (Product, Order, Pricing) — aucune
+                               # référence ASP.NET (imposé par les tests d'architecture)
+  ShopPulse.Application/       # Ports : IProductService, IOrderPlacer,
+                               # IPaymentGateway, IOrderAdmin… + StoreConfig
+  ShopPulse.Infrastructure/    # Adaptateurs : Persistence/ (EF Core, migrations,
+                               # seed), clients HTTP (ProductApiClient…), Stripe,
+                               # SMTP, cache, sanitizer HTML
+  ShopPulse.Contracts/         # DTO partagés API ↔ clients (records)
+  ShopPulse.SharedKernel/      # Types transverses sans dépendance : Store<T>,
+                               # QueryClient, Result, IClock…
+  ShopPulse.Modularity/        # IShopModule + ModuleCatalog + PluginLoader
+  ShopPulse.UI/                # RCL design system : jetons CSS --sp-*, composants
+                               # Atomic Design (Atoms/Molecules/Organisms/Templates),
+                               # ressources i18n SharedResource.{fr,en,ar}.resx
+  ShopPulse.Features.Catalog/  # RCLs métier (pages + composants + module DI) :
+  ShopPulse.Features.Cart/     #   chaque feature enregistre SES services via
+  ShopPulse.Features.Checkout/ #   CatalogModule : IShopModule (frontières nettes)
+  ShopPulse.Features.Account/
+  ShopPulse.Features.Admin/
+  ShopPulse.Api/               # Minimal API : /api/products, /api/orders,
+                               # /api/admin/*, /webhooks/stripe, /hubs/stock
+                               # (SignalR), /health, /metrics, OutboxWorker
+  ShopPulse.Web/               # Hôte Blazor Server : OIDC, sécurité, CSP,
+                               # composition des modules via AddAdditionalAssemblies
 tests/
-  ShopPulse.Architecture.Tests/  # règles de dépendances (NetArchTest.Rules)
-  ShopPulse.A11y/                # tests axe (Playwright + Deque.AxeCore)
+  ShopPulse.Architecture.Tests/  # NetArchTest : règles de dépendances (14 tests)
+  ShopPulse.Api.Tests/           # Intégration : WebApplicationFactory +
+                                 # Testcontainers PostgreSQL + vrai Keycloak (16 tests)
+  ShopPulse.E2E/                 # Playwright : checkout, compte, admin, refresh
+                                 # token (4 tests + utilitaire Screenshots)
+  ShopPulse.A11y/                # axe-core : 5 pages × fr/en/ar (RTL inclus)
+docs/                    # Chapitres 00 à 26 (un par étape), adr/, manuscrit/, images/
+Livre/                   # Chapitres illustrés du livre + PDF final
+docker/keycloak/         # realm-shoppulse.json importé au démarrage
+docker/postgres/         # backup.sh (sauvegardes périodiques, service « backup »)
+docker/prometheus/       # prometheus.yml + alert.rules.yml (alerting, docs/26)
+docker/alertmanager/     # alertmanager.yml (notification email via Mailpit)
+scripts/dev.ps1          # Démarrage dev Windows (conteneurs + build Release + 2 fenêtres)
+docker-compose.yml       # Pile complète : db, backup, keycloak, mailpit, api, web,
+                         # jaeger (traces), prometheus + alertmanager (alerting)
 ```
 
-Garde-fous prévus par le cours : NetArchTest (ex. Domain ne référence jamais `Microsoft.AspNetCore`), CODEOWNERS, ADR pour les décisions structurantes.
+## 3. Pile technique et architecture d'exécution
 
-Conventions de découpage : chaque feature est une **Razor Class Library** pour que le compilateur impose les frontières ; le design system `ShopPulse.UI` suit l'Atomic Design (`Components/Atoms`, `Molecules`, `Organisms`, `Templates`) ; les composants se divisent en présentation (« bêtes », ex. `ProductCard`), conteneurs (émettent des événements) et mise en page. Composition plutôt qu'héritage (`ChildContent`, `RenderFragment<T>`), `[EditorRequired]` pour les paramètres obligatoires, `[Parameter(CaptureUnmatchedValues = true)]` pour laisser passer `class` et `aria-*`.
+- **Runtime : .NET 10 (`net10.0`), C# 14, Blazor Server** (Static SSR +
+  `InteractiveServer` via circuit SignalR). Aucun C# ne s'exécute dans le
+  navigateur. Le mode de rendu se choisit **par page ou par composant** ; ne
+  jamais tout rendre interactif par défaut.
+- **API** : ASP.NET Core Minimal API, SignalR (`StockHub`), JWT Bearer,
+  Rate Limiting, Request Timeouts, Problem Details (RFC 9457), OpenAPI en dev.
+  Top-level statements + `public partial class Program;` pour
+  `WebApplicationFactory`.
+- **Données** : PostgreSQL 17, EF Core 10 (Npgsql 10.0.4), migrations appliquées
+  au démarrage (idempotent, acceptable pour une instance unique),
+  `DesignTimeDbContextFactory` pour `dotnet ef` depuis Infrastructure.
+- **Cache** : `HybridCache` côté API (décorateur `CachedProductService`,
+  invalidation par tag `"catalog"` à chaque écriture) ; `OutputCache` côté Web
+  (politique `catalog` : vary query + `Accept-Language`, tag pour invalidation).
+- **Identité** : Keycloak (OIDC + PKCE), cookie `__Host-shoppulse` chiffré
+  (`HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/` forcé), jetons côté serveur
+  (`UserTokenStore` + refresh avec verrou), expiration inactivité 20 min +
+  absolue 8 h.
+- **Paiement** : `IPaymentGateway` — Stripe (Payment Intents, webhooks signés)
+  ou `FakePaymentGateway` + endpoint `/fake-confirm` mappé **uniquement** sans
+  clés.
+- **Emails** : MailKit → Mailpit en dev ; **pattern Outbox** (`outbox_messages`
+  écrit dans la transaction métier, `OutboxWorker` poll 2 s, retry ×5).
+- **Observabilité** : Serilog structuré (propriété `Application`, `TraceId`),
+  `/health/live` (processus) vs `/health` (JSON détaillé des dépendances),
+  métriques OpenTelemetry → Prometheus sur `/metrics`, traces distribuées
+  OTLP → Jaeger (UI 16686), alerting Prometheus → Alertmanager → email Mailpit.
+- **Conteneurs** : `docker-compose.yml` = 9 services (db, backup, keycloak,
+  mailpit, api, web, jaeger, prometheus, alertmanager) avec DNS split-horizon
+  autour de Keycloak (`--hostname-backchannel-dynamic`) et volume Data
+  Protection pour le Web.
 
-## Commandes de build et d'exécution
+## 4. Build et exécution
 
-Les commandes ci-dessous viennent du cours (à exécuter une fois le code créé) :
+Prérequis : SDK **.NET 10**, Docker Desktop, navigateur Chromium (tests E2E/axe).
 
 ```bash
-# Étape 0 — création du projet initial
-dotnet new blazor -n ShopPulse -int Server -au None
-cd ShopPulse && dotnet run
+# Build complet (vérifié : 0 avertissement, 0 erreur avec TreatWarningsAsErrors)
+dotnet build ShopPulse.slnx
 
-# Refonte en solution modulaire (module 4)
-dotnet new sln -n ShopPulse
-dotnet new classlib -n ShopPulse.Domain -o src/ShopPulse.Domain
-dotnet new razorclasslib -n ShopPulse.UI -o src/ShopPulse.UI
-dotnet new razorclasslib -n ShopPulse.Features.Catalog -o src/ShopPulse.Features.Catalog
-dotnet sln add src/**/*.csproj
-dotnet add src/ShopPulse.Features.Catalog reference src/ShopPulse.UI src/ShopPulse.Domain
+# Développement local (3 terminaux)
+docker compose up -d db mailpit keycloak     # infrastructure seule
+cd src/ShopPulse.Api && dotnet run           # API  → http://localhost:5299
+cd src/ShopPulse.Web && dotnet run           # Web  → http://localhost:5026
+# (l'API applique migrations + seed au démarrage)
+
+# Ou tout-en-un sous Windows
+powershell -ExecutionPolicy Bypass -File scripts/dev.ps1
+
+# Toute la pile en conteneurs
+docker compose up -d --build                 # ports 5026 (web), 5299 (api),
+                                             # 8080 (keycloak), 5432 (db), 8025 (mailpit)
 
 # Publication (jamais en dotnet watch pour la production)
 dotnet publish -c Release -o out
-ASPNETCORE_ENVIRONMENT=Production dotnet out/ShopPulse.dll --urls https://localhost:5001
 
-# Audit des dépendances
+# Audit des dépendances (déjà bloquant à la build via Directory.Build.props)
 dotnet list package --vulnerable --include-transitive
 ```
 
-## Stratégie de tests
+Accès de développement :
 
-Pyramide préconisée par le cours et le diaporama du module 8 :
+| Quoi | URL / identifiants |
+|---|---|
+| Boutique | http://localhost:5026 (redirige vers `/fr/`) |
+| Mailpit (emails capturés) | http://localhost:8025 |
+| Keycloak | http://localhost:8080 — `demo`/`demo1234` (stock-manager), `client`/`client1234` |
+| Paiement sans clés Stripe | bouton « Simuler le paiement (démo) » ; avec clés : `dotnet user-secrets set "Stripe:SecretKey" sk_test_...` (voir `docs/17`) |
 
-- **Base (rapide, composants)** : tests C# unitaires avec **bUnit** et `A11yAssert` — absence d'ID dupliqués, présence d'attributs `alt`, pas de saut de niveau de titre.
-- **Milieu (E2E / moteur WCAG)** : **Playwright + axe-core** (`Deque.AxeCore.Playwright`), matrice 3 langues × 2 thèmes, contrastes réels CSS et pièges à focus (modales). Navigateur Chromium requis.
-- **Sommet (humain / manuel)** : navigation au clavier pure, lecteur d'écran (NVDA / VoiceOver), vérification du contraste forcé.
-- **Architecture** : tests NetArchTest vérifiant les règles de dépendances entre projets.
-- **i18n** : test CI qui échoue si une clé de traduction manque dans une langue ; pseudo-localisation (`Locale:Pseudo=true`) pour détecter les textes codés en dur.
+## 5. Stratégie de tests
 
-Chaque module du cours se termine par des exercices de vérification manuelle (onglet Réseau, mode hors connexion, injection XSS, parcours clavier, etc.).
+Pyramide vérifiée (les serveurs API + Web doivent tourner pour E2E et A11y) :
 
-## Conventions du projet (à respecter dans tout ajout)
+```bash
+dotnet test tests/ShopPulse.Architecture.Tests   # 14 règles NetArchTest (rapide, sans infra)
+dotnet test tests/ShopPulse.Api.Tests            # 16 tests d'intégration
+                                                 # (WebApplicationFactory + Testcontainers
+                                                 # PostgreSQL + vrai Keycloak — Docker requis)
+dotnet test tests/ShopPulse.E2E                  # 4 parcours Playwright
+                                                 # (checkout, compte, admin, refresh token)
+dotnet test tests/ShopPulse.A11y                 # axe-core WCAG 2.2 AA : 5 pages × 3 langues
+```
 
-- Langue de la documentation et des textes d'interface : **français** (l'anglais et l'arabe sont ajoutés au module 8 via `IStringLocalizer` et des fichiers `.resx`).
-- Marqueurs du cours : **« Piège »** signale une erreur fréquente, **« Limite »** ce que le code ne couvre volontairement pas. Les conserver si l'on ajoute de la documentation.
-- Enregistrements de services : **Scoped par défaut** pour tout état utilisateur (panier, favoris, formulaires) ; un Singleton ne porte jamais d'état utilisateur. `CatalogNotifier` est le seul Singleton du module 3.
-- État au plus bas niveau utile : filtres/page dans l'URL, liste produits dans un `QueryClient` (état serveur caché), formulaire dans `EditContext`, thème en `CascadingValue`.
-- CSS : propriétés logiques (`margin-inline-start`, pas `margin-left`) pour le RTL ; jetons `--sp-*` du design system ; contraste WCAG 2.2 AA (texte 4,5:1, bordures/focus 3:1) dans les deux thèmes.
-- ARIA en Razor : jamais d'attribut booléen nu (`aria-expanded="@_open"` génère un attribut sans valeur) — utiliser `aria-expanded="@(_open ? "true" : "false")"`.
-- Interop JS / focus : les appels `FocusAsync` et l'interop JS attendent `OnAfterRenderAsync` ; ne jamais appeler `showModal()` pendant le prerender ; utiliser `@key` sur les nœuds focalisés pour éviter la perte de focus.
-- Tout cache a une règle d'invalidation ; tout appel réseau a un délai, une reprise et une annulation ; ne jamais réessayer une écriture non idempotente.
-- Secrets : `dotnet user-secrets` en développement, Key Vault en production, jamais de secret côté frontend ni dans le dépôt.
+- E2E et A11y acceptent des cibles configurables : `SHOPPULSE_APIURL` /
+  `SHOPPULSE_WEBURL`.
+- `Screenshots.cs` (E2E) est un utilitaire de capture visuelle, à lancer
+  ponctuellement via `--filter Screenshots`.
+- Vérification manuelle attendue pour certains parcours : navigation clavier
+  pure, lecteur d'écran, onglet Réseau, injection XSS.
 
-## Sécurité (module 7)
+## 6. Conventions de code (à respecter dans tout ajout)
 
-Principe directeur : **tout ce qui vient du navigateur est non fiable**, y compris dans Blazor Server. Blazor encode par défaut (`@valeur`) ; `MarkupString` n'est utilisé qu'avec nettoyage (`HtmlSanitizerService`). Defenses prévues : antiforgery + cookies `SameSite=Lax`, cookie `__Host-` `HttpOnly` `Secure` avec jetons côté serveur, OIDC avec PKCE (Keycloak en dev), CSP avec nonce (d'abord Report-Only), `frame-ancestors 'none'`, HTTPS + HSTS, validation du `returnUrl` (open redirect), expiration de session (inactivité + absolue), NuGetAudit/Dependabot/SBOM, RateLimiter et CORS strict sur l'API.
+- **Langue** : documentation et textes d'interface en français ; l'anglais et
+  l'arabe passent par `IStringLocalizer` + `SharedResource.{fr,en,ar}.resx`
+  (73 clés). Toute nouvelle clé doit exister dans les 3 langues.
+- **Marqueurs du cours** : « Piège » signale une erreur fréquente, « Limite »
+  ce que le code ne couvre volontairement pas. Les conserver et les utiliser
+  dans tout ajout de documentation ou de commentaire.
+- **Injection de dépendances** : **Scoped par défaut** pour tout état
+  utilisateur (panier, favoris, formulaires) ; un Singleton ne porte jamais
+  d'état utilisateur (`CatalogNotifier`, bus sans état, est la seule exception
+  métier).
+- **État au plus bas niveau utile** : filtres/page dans l'URL, liste produits
+  dans un `QueryClient`, formulaire dans `EditContext`, thème en
+  `CascadingValue`.
+- **CSS** : propriétés logiques (`margin-inline-start`, pas `margin-left`)
+  pour le RTL ; jetons `--sp-*` du design system ; contraste WCAG 2.2 AA
+  (texte 4,5:1, bordures/focus 3:1) dans les deux thèmes.
+- **ARIA en Razor** : jamais d'attribut booléen nu — écrire
+  `aria-expanded="@(_open ? "true" : "false")"`.
+- **Interop JS / focus** : `FocusAsync` et l'interop JS attendent
+  `OnAfterRenderAsync` ; jamais de `showModal()` pendant le prerender ;
+  `@key` sur les nœuds focalisés.
+- **Réseau** : tout cache a une règle d'invalidation ; tout appel réseau a un
+  délai, une reprise et une annulation ; **ne jamais réessayer une écriture
+  non idempotente** ; les prix sont toujours recalculés côté serveur.
+- **Composants** : composition plutôt qu'héritage (`ChildContent`,
+  `RenderFragment<T>`), `[EditorRequired]` pour les paramètres obligatoires,
+  `[Parameter(CaptureUnmatchedValues = true)]` pour laisser passer `class` et
+  `aria-*`.
+- **Règle de rédaction** : après chaque étape terminée et vérifiée (build +
+  exécution OK), rédiger ou mettre à jour le chapitre correspondant dans
+  `docs/`, en français, avec une section par concept, les marqueurs « Piège »
+  et « Limite », et un bilan.
 
-## Accessibilité et internationalisation (module 8)
+## 7. Sécurité
 
-Objectif : WCAG 2.2 niveau AA, locales `/fr/...`, `/en/...`, `/ar/...` avec hreflang et routage par middleware `LocalePathMiddleware` (cookie `sp_locale`, header `Accept-Language` ; ne jamais rediriger `/api` ni `/_blazor`). HTML sémantique d'abord (header/nav/main/footer, `<dialog>` natif, skip links via `a11y.js` qui intercepte `[data-sp-skip]` car `<base href="/">` casse les ancres), `LiveAnnouncer` (`aria-live="polite"` / `"assertive"` injectés dans `App.razor`), pluriels CLDR (6 formes en arabe via `PluralRules.cs`), formats par `Culture` (devise de la boutique en `StoreCulture`, invariant pour URL/JSON/logs), `<bdi>` pour isoler le texte latin en arabe. Le client HTTP doit transmettre manuellement `Accept-Language` à l'API.
+Principe directeur : **tout ce qui vient du navigateur est non fiable**, y
+compris dans Blazor Server.
 
-Les « 5 règles d'or » du bilan du cours (diaporama, planche 19) : (1) commencer statique, rendre interactif sur besoin ; (2) tout cache est une promesse d'invalidation ; (3) le navigateur (DOM, cookies, focus) n'est jamais digne de confiance ; (4) ce qui n'est pas testé automatiquement régresse ; (5) une seule source de vérité par donnée.
+- Blazor encode par défaut (`@valeur`) ; `MarkupString` n'est utilisé qu'avec
+  `HtmlSanitizerService`.
+- Cookie `__Host-` `HttpOnly` `Secure` `SameSite=Lax`, jetons côté serveur,
+  antiforgery, validation du `returnUrl` (anti open redirect), expiration de
+  session (inactivité 20 min + absolue 8 h).
+- **CSP appliquée** (bloquante) avec nonce par requête (le `<ImportMap>` exige
+  le nonce ; le JSON-LD aussi), `frame-ancestors 'none'`, HSTS hors dev.
+- API : JWT bearer (`MapInboundClaims=false` — sinon `sub` est renommé),
+  RateLimiter (100 req/min par utilisateur/IP), CORS strict, 404 plutôt que
+  403 pour ne pas révéler l'existence d'une commande, signature HMAC en temps
+  constant pour le suivi invité.
+- Webhook Stripe : la signature validée est la **seule** preuve de paiement.
+- NuGetAudit bloquant à la build (`Directory.Build.props`, NU1901–NU1904 en
+  erreur).
+- Secrets : `dotnet user-secrets` en dev, variables d'environnement en
+  conteneur, **jamais dans le dépôt** (le `dev-secret-shoppulse` de
+  docker-compose et le mot de passe PostgreSQL sont des valeurs de dev
+  uniquement, documentées comme telles).
 
-## Points de vigilance pour un agent
+## 8. Accessibilité et internationalisation
 
-- Ne pas inventer de structure de code : le code de `ShopPulse/` suit le cours PDF, étape par étape. Ne pas ajouter de fonctionnalité en avance sur le module en cours.
-- Règle de rédaction : après chaque étape/module terminé et vérifié (build + exécution OK), rédiger ou mettre à jour le chapitre correspondant dans `docs/`, en français, avec une section par concept abordé, les marqueurs « Piège » et « Limite », et un bilan des notions.
-- Les deux PDF ne sont pas indexables par des outils texte classiques : le cours est extractible par `pdftotext`, le diaporama « Architecture Universelle » est composé d'images (il faut le visualiser page par page).
-- Les numéros de version de paquets donnés dans le cours (ex. xunit, NetArchTest.Rules) sont des exemples : prendre les dernières versions stables au moment de l'installation.
-- Les paquets `Microsoft.AspNetCore.*` et `Microsoft.Extensions.*` doivent rester alignés sur la **même version majeure que le runtime** installé (un `dotnet add package` sans version peut résoudre une majeure supérieure → `MissingMethodException` qui tue les circuits Blazor en silence). Vérifier avec `dotnet --list-runtimes` et épingler dans `Directory.Packages.props`.
+- Objectif **WCAG 2.2 niveau AA**, vérifié par axe-core (matrice 5 pages ×
+  3 langues, y compris le miroir RTL de l'arabe).
+- Locales `/fr/...`, `/en/...`, `/ar/...` : middleware `LocalePathMiddleware`
+  (préfixe → `PathBase` + culture, cookie `sp_locale`, `Accept-Language` ; ne
+  jamais rediriger `/api` ni `/_blazor`).
+- HTML sémantique d'abord, skip links via `a11y.js` (car `<base href="/">`
+  casse les ancres), `LiveAnnouncer` (`aria-live` injectés dans `App.razor`),
+  pluriels CLDR (6 formes en arabe via `PluralRules.cs`), `<bdi>` pour isoler
+  le texte latin en arabe.
+- Le client HTTP transmet manuellement `Accept-Language` à l'API.
+
+## 9. Points de vigilance pour un agent
+
+- **Ne pas inventer de fonctionnalité** : le projet suit le cours PDF puis les
+  phases documentées dans `docs/`. Vérifier `docs/` avant d'ajouter quoi que
+  ce soit.
+- **Alignement des versions** : les paquets `Microsoft.AspNetCore.*` et
+  `Microsoft.Extensions.*` doivent rester sur la **même majeure que le runtime
+  installé** (un `dotnet add package` sans version peut résoudre une majeure
+  supérieure → `MissingMethodException` qui tue les circuits Blazor en
+  silence). Versions centralisées dans `Directory.Packages.props` ; vérifier
+  avec `dotnet --list-runtimes`.
+- Les API .NET évoluent d'une version à l'autre : vérifier la documentation
+  .NET 10 pour toute API dépendante de la version (ex. `RequestTimeoutPolicy`
+  a déménagé de namespace entre .NET 8 et 10).
+- **Pièges documentés à ne pas réintroduire** :
+  - `using Serilog` rend `ILogger` ambigu → qualifier ;
+  - le HttpClient de `WebApplicationFactory` route tout en mémoire → Keycloak
+    exige un vrai `HttpClient` dans les tests d'intégration ;
+  - le cookie `__Host-` exige `Path=/` — le PathBase de la locale (`/fr`)
+    casserait la connexion en boucle ;
+  - le bouton Rechercher de l'en-tête ne doit pas porter `sp-btn--primary`
+    (sélecteur E2E du CTA panier) ;
+  - rembourser **avant** la transition de statut d'annulation d'une commande
+    payée ;
+  - `scripts/dev.ps1` build en Release car le dossier `bin/Debug` peut rester
+    verrouillé par d'anciens processus Windows (d'où les dossiers `bin-local/`
+    présents dans le dépôt — artefacts de build, ne pas les modifier).
+- Les deux PDF à la racine ne sont pas tous indexables : le cours est
+  extractible par `pdftotext` ; le diaporama « Architecture Universelle » est
+  composé d'images (le visualiser page par page).
+- Les numéros de version de paquets cités dans le cours sont des exemples :
+  prendre les dernières versions stables au moment de l'installation.

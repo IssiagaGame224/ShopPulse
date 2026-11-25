@@ -109,7 +109,14 @@ else
        private bool _elementMounted;
        private IJSObjectReference? _stripeModule;
 
-       protected override void OnInitialized() => Watch(Machine);
+       protected override void OnInitialized()
+       {
+              Watch(Machine);
+              // Le panier se restaure en asynchrone depuis le session storage (CartSync) :
+              // sans cette observation, un rendu initial à 0 ligne resterait figé
+              // (bouton « Suivant » désactivé pour toujours) — course révélée en conteneur.
+              if (Cart is IObservableState cartState) Watch(cartState);
+       }
 
        private void OnShippingSubmitted(ShippingForm form)
        {

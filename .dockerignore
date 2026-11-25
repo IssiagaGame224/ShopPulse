@@ -1,4 +1,5 @@
 **/bin/
+**/bin-local/
 **/obj/
 **/out/
 .git/

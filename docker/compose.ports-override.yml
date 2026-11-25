@@ -1,0 +1,12 @@
+# Surcharge de ports — CONTOURNEMENT TEMPORAIRE (incident documenté dans docs/24) :
+# des processus zombies Windows (listen() gelé dans le noyau) bloquent les ports
+# 5026/5299 sur l'hôte. Usage : docker compose -f docker-compose.yml
+#   -f docker/compose.ports-override.yml up -d
+# À SUPPRIMER après redémarrage de Windows (les ports par défaut redeviennent libres).
+services:
+  api:
+    ports: !override
+      - "5301:8080"
+  web:
+    ports: !override
+      - "5040:8080"

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 using ShopPulse.Api;
 using ShopPulse.Api.Hubs;
@@ -33,11 +35,23 @@ builder.Services.AddHealthChecks()
 
 // Métriques OpenTelemetry : requêtes HTTP entrantes/sortantes, exposées au format
 // Prometheus sur /metrics (à protéger par le réseau en production).
+// Traces distribuées (docs/25) : Web → API → PostgreSQL dans une même trace, exportées
+// en OTLP vers un collecteur (Jaeger) UNIQUEMENT si un endpoint est configuré
+// (OTEL_EXPORTER_OTLP_ENDPOINT) — sinon aucun export, aucune erreur de connexion.
 builder.Services.AddOpenTelemetry()
+       .ConfigureResource(r => r.AddService("ShopPulse.Api"))
        .WithMetrics(m => m
               .AddAspNetCoreInstrumentation()
               .AddHttpClientInstrumentation()
-              .AddPrometheusExporter());
+              .AddPrometheusExporter())
+       .WithTracing(t =>
+       {
+              t.AddAspNetCoreInstrumentation()
+               .AddHttpClientInstrumentation()
+               .AddSource("Npgsql");          // spans des requêtes SQL (ActivitySource intégré à Npgsql)
+              if (builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] is not null)
+                     t.AddOtlpExporter();     // lit OTEL_EXPORTER_OTLP_ENDPOINT (gRPC, 4317)
+       });
 
 // Persistance : PostgreSQL via EF Core (phase « vraie boutique », remplace l'in-memory).
 // Chaîne de connexion : appsettings.Development.json en local, ConnectionStrings__ShopPulse

@@ -30,12 +30,15 @@ public static class SecurityHeaders
 
                      // CSP APPLIQUÉE (plus Report-Only) : les E2E Playwright vérifient
                      // qu'aucune ressource légitime n'est bloquée (scripts nonce/SRI,
-                     // Stripe, WebSocket SignalR, styles bootstrap inline).
+                     // Stripe, WebSocket SignalR).
                      h["Content-Security-Policy"] =
                             "default-src 'self'; " +
                             // js.stripe.com : Stripe.js (phase 6) — chargé dynamiquement par l'interop.
                             $"script-src 'self' 'nonce-{nonce}' https://js.stripe.com; " +
-                            "style-src 'self' 'unsafe-inline'; " +   // bootstrap/styles inline du modèle ; à resserrer
+                            // Aucun <style> ni style="…" inline dans l'application (vérifié
+                            // docs/24) : 'unsafe-inline' n'est plus nécessaire. Les styles posés
+                            // en JS via element.style (CSSOM) ne sont pas soumis à style-src.
+                            "style-src 'self'; " +
                             "img-src 'self' data:; " +
                             "connect-src 'self' ws: wss: https://api.stripe.com; " +   // ws:/wss: = circuit SignalR (dev en clair)
                             "frame-src https://js.stripe.com https://hooks.stripe.com; " +   // iframes 3DS
