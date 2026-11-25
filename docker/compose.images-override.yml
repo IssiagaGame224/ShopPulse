@@ -1,0 +1,12 @@
+# Surcharge « images publiées » (chapitre docs/30) : au lieu de construire
+# localement, utilise les images GHCR publiées par la CD.
+#
+#   docker compose -f docker-compose.yml -f docker/compose.images-override.yml pull
+#   docker compose -f docker-compose.yml -f docker/compose.images-override.yml up -d
+#
+# Épingler une version précise : remplacer :latest par le SHA du commit voulu.
+services:
+  api:
+    image: ghcr.io/issiagagame224/shoppulse-api:latest
+  web:
+    image: ghcr.io/issiagagame224/shoppulse-web:latest

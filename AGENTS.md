@@ -75,12 +75,17 @@ consommation atomique en transaction — UPDATE conditionnel comme le stock,
 aperçu `/api/promo-codes/validate` sans consommation, instantanés
 `PromoCode`/`Discount` sur la commande, livraison offerte sur sous-total
 remisé, panier via `CartState.PromoCode`/`ICartGateway.PromoCode`, admin
-`/admin/promo-codes` — `docs/29`).
+`/admin/promo-codes` — `docs/29`), **CD GHCR** (workflow `cd.yml` déclenché
+sur CI verte de `main`, images `ghcr.io/<owner>/shoppulse-{api,web}` taguées
+SHA + latest, cache gha, `GITHUB_TOKEN` suffit, GHCR exige des noms en
+minuscules ; consommation via `docker/compose.images-override.yml` —
+`docs/30`).
 
 Évolutions possibles (non faites) : alertes métier (stock bas, ancienneté du
 dernier dump), backend de traces persistant, sauvegarde externalisée (règle 3-2-1),
 i18n des pages publiques catalogue/panier, pagination des avis, cumul et
-restrictions de codes promo, CD (publication d'images).
+restrictions de codes promo, scan de vulnérabilités d'images, déploiement
+automatique vers un serveur.
 
 ## 2. Structure du dépôt
 
@@ -123,7 +128,7 @@ tests/
   ShopPulse.E2E/                 # Playwright : checkout, compte, admin, refresh
                                  # token (4 tests + utilitaire Screenshots)
   ShopPulse.A11y/                # axe-core : 5 pages × fr/en/ar (RTL inclus)
-docs/                    # Chapitres 00 à 29 (un par étape), adr/, manuscrit/, images/
+docs/                    # Chapitres 00 à 30 (un par étape), adr/, manuscrit/, images/
 Livre/                   # Chapitres illustrés du livre + PDF final
 docker/keycloak/         # realm-shoppulse.json importé au démarrage
 docker/postgres/         # backup.sh (sauvegardes périodiques, service « backup »)
