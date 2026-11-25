@@ -27,8 +27,12 @@ builder.Host.UseSerilog((ctx, cfg) => cfg
               "[{Timestamp:HH:mm:ss} {Level:u3}] [{Application}] {Message:lj}{NewLine}{Exception}"));
 
 // Health checks : la base ET l'IdP doivent répondre pour que l'API soit « Healthy ».
+// La chaîne de connexion est résolue PARESSEUSEMENT (via IServiceProvider) : lue ici
+// directement, elle ignorerait les surcharges de configuration appliquées au Build()
+// — ex. la base Testcontainers des tests d'intégration (docs/27).
 builder.Services.AddHealthChecks()
-       .AddNpgSql(builder.Configuration.GetConnectionString("ShopPulse")!, name: "postgresql")
+       .AddNpgSql(sp => sp.GetRequiredService<IConfiguration>().GetConnectionString("ShopPulse")!,
+              name: "postgresql")
        .AddUrlGroup(
               new Uri($"{builder.Configuration["Oidc:Authority"]}/.well-known/openid-configuration"),
               name: "keycloak");
