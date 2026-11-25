@@ -17,6 +17,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ShopPulse.A11y/ShopPulse.A11y.csproj" />
+    <Project Path="tests/ShopPulse.Api.Tests/ShopPulse.Api.Tests.csproj" />
     <Project Path="tests/ShopPulse.Architecture.Tests/ShopPulse.Architecture.Tests.csproj" />
     <Project Path="tests/ShopPulse.E2E/ShopPulse.E2E.csproj" />
   </Folder>
