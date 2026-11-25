@@ -104,6 +104,7 @@ réseau sont idempotentes, les frontières sont vérifiées par des tests.
 | Paiement | Stripe.net (Payment Intents, webhooks signés) + simulateur dev |
 | Emails | MailKit + Mailpit (capture dev) |
 | Tests | xUnit, NetArchTest.Rules, Playwright, axe-core (Deque.AxeCore) |
+| Observabilité | Health checks `/health` (JSON détaillé), logs structurés Serilog |
 | Infra | Docker Compose (5 services), Dockerfiles multi-étapes |
 
 ## Démarrage rapide
@@ -129,6 +130,9 @@ cd src/ShopPulse.Web && dotnet run          # → http://localhost:5026
 | Paiement | Sans clés Stripe : bouton « Simuler le paiement (démo) ». Avec clés de test : `dotnet user-secrets set "Stripe:SecretKey" sk_test_...` (voir [`docs/17`](docs/17-boutique-reelle-06-paiement-stripe.md)) |
 
 Toute la pile en conteneurs : `docker compose up -d --build` (ports 5026/5299/8080).
+
+Sondes de santé : `GET /health` sur l'API (PostgreSQL + Keycloak) et sur le Web (API),
+en JSON détaillé — prêtes pour un orchestrateur.
 
 ## Tests
 

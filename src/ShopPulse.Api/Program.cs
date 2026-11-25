@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
+using Serilog;
 using ShopPulse.Api;
 using ShopPulse.Api.Hubs;
 using ShopPulse.Contracts;
@@ -12,6 +13,22 @@ using Microsoft.AspNetCore.Http.Timeouts;   // .NET 10 : RequestTimeoutPolicy a 
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Observabilité : logs structurés Serilog (niveaux depuis la configuration,
+// enrichis du nom d'application ; TraceId ajouté par requête via UseSerilogRequestLogging).
+builder.Host.UseSerilog((ctx, cfg) => cfg
+       .ReadFrom.Configuration(ctx.Configuration)
+       .Enrich.FromLogContext()
+       .Enrich.WithProperty("Application", "ShopPulse.Api")
+       .WriteTo.Console(outputTemplate:
+              "[{Timestamp:HH:mm:ss} {Level:u3}] [{Application}] {Message:lj}{NewLine}{Exception}"));
+
+// Health checks : la base ET l'IdP doivent répondre pour que l'API soit « Healthy ».
+builder.Services.AddHealthChecks()
+       .AddNpgSql(builder.Configuration.GetConnectionString("ShopPulse")!, name: "postgresql")
+       .AddUrlGroup(
+              new Uri($"{builder.Configuration["Oidc:Authority"]}/.well-known/openid-configuration"),
+              name: "keycloak");
 
 // Persistance : PostgreSQL via EF Core (phase « vraie boutique », remplace l'in-memory).
 // Chaîne de connexion : appsettings.Development.json en local, ConnectionStrings__ShopPulse
@@ -121,10 +138,18 @@ if (!app.Environment.IsDevelopment())
        app.UseHsts();
 }
 app.UseStatusCodePages();
+app.UseSerilogRequestLogging(o =>
+       o.EnrichDiagnosticContext = (diag, http) => diag.Set("TraceId", http.TraceIdentifier));
 app.UseRequestTimeouts();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Sonde de santé : état de la base et de Keycloak, en JSON détaillé.
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+       ResponseWriter = WriteHealthJson,
+});
 
 if (app.Environment.IsDevelopment())
        app.MapOpenApi();                                   // /openapi/v1.json
@@ -463,10 +488,30 @@ admin.MapPut("/products/{id:int}", async (int id, ShopPulse.Application.ProductU
 
 app.Run();
 
+// Réponse JSON détaillée de /health : statut global + état de chaque dépendance.
+static async Task WriteHealthJson(HttpContext context,
+       Microsoft.Extensions.Diagnostics.HealthChecks.HealthReport report)
+{
+       context.Response.ContentType = "application/json; charset=utf-8";
+       await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(new
+       {
+              status = report.Status.ToString(),
+              totalDurationMs = Math.Round(report.TotalDuration.TotalMilliseconds),
+              checks = report.Entries.Select(e => new
+              {
+                     name = e.Key,
+                     status = e.Value.Status.ToString(),
+                     durationMs = Math.Round(e.Value.Duration.TotalMilliseconds),
+                     description = e.Value.Description,
+              }),
+       }));
+}
+
 // Confirmation d'un paiement : transition Pending → Paid idempotente + email client.
 // Partagée par le webhook Stripe (prod) et le faux endpoint de dev.
 static async Task<IResult> ConfirmPaidAsync(Guid orderId, EfOrderService orders,
-       ShopPulse.Application.IOrderEmailSender emails, ILogger logger, CancellationToken ct)
+       ShopPulse.Application.IOrderEmailSender emails,
+       Microsoft.Extensions.Logging.ILogger logger, CancellationToken ct)
 {
        if (await orders.FindByIdAsync(orderId, ct) is not { } order)
               return Results.NotFound();

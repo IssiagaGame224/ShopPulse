@@ -1,3 +1,4 @@
+using Serilog;
 using ShopPulse.Application;
 using ShopPulse.Features.Account;
 using ShopPulse.Features.Admin;
@@ -18,6 +19,14 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Polly;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Observabilité : logs structurés Serilog (mêmes conventions que l'API).
+builder.Host.UseSerilog((ctx, cfg) => cfg
+    .ReadFrom.Configuration(ctx.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("Application", "ShopPulse.Web")
+    .WriteTo.Console(outputTemplate:
+        "[{Timestamp:HH:mm:ss} {Level:u3}] [{Application}] {Message:lj}{NewLine}{Exception}"));
 
 // Ne pas trahir la technologie : masquer l'en-tête Server.
 builder.WebHost.ConfigureKestrel(k => k.AddServerHeader = false);
@@ -117,6 +126,10 @@ builder.Services.AddScoped<QueryClient>();
 builder.Services.AddScoped<SwrCache>();
 // Module 8 — i18n : IStringLocalizer + les cultures supportées.
 builder.Services.AddLocalization();
+
+// Health check : le Web est « Healthy » si l'API répond.
+builder.Services.AddHealthChecks()
+    .AddUrlGroup(new Uri(new Uri(builder.Configuration["Api:BaseUrl"]!), "health"), name: "api");
 // Annonces aux lecteurs d'écran (région live unique dans le layout).
 builder.Services.AddScoped<ILiveAnnouncer, LiveAnnouncer>();
 // Module 6 — Networking : l'interface parle à l'API via un HttpClient typé et résilient.
@@ -192,6 +205,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
 
+app.UseSerilogRequestLogging(o =>
+    o.EnrichDiagnosticContext = (diag, http) => diag.Set("TraceId", http.TraceIdentifier));
+
 // Module 7 : en-têtes de sécurité + CSP (Report-Only) avec nonce par requête.
 app.UseSecurityHeaders();
 // Server-Timing : où va le temps serveur, lisible dans l'onglet Network des DevTools
@@ -216,6 +232,12 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies([.. modules.Select(m => m.UiAssembly), typeof(ShopPulse.UI.Marker).Assembly]);
 
 // Module 7 — connexion / déconnexion. returnUrl validé : anti-redirection ouverte.
+// Sonde de santé : l'API doit répondre pour que le Web soit « Healthy ».
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    ResponseWriter = WriteHealthJson,
+});
+
 app.MapGet("/login", (string? returnUrl, HttpContext ctx) =>
        Results.Challenge(
               new AuthenticationProperties { RedirectUri = LocalUrl(returnUrl) },
@@ -231,3 +253,22 @@ static string LocalUrl(string? url) =>
        !string.IsNullOrEmpty(url) && url.StartsWith('/') && !url.StartsWith("//") ? url : "/";
 
 app.Run();
+
+// Réponse JSON détaillée de /health (même format que l'API).
+static async Task WriteHealthJson(HttpContext context,
+    Microsoft.Extensions.Diagnostics.HealthChecks.HealthReport report)
+{
+    context.Response.ContentType = "application/json; charset=utf-8";
+    await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(new
+    {
+        status = report.Status.ToString(),
+        totalDurationMs = Math.Round(report.TotalDuration.TotalMilliseconds),
+        checks = report.Entries.Select(e => new
+        {
+            name = e.Key,
+            status = e.Value.Status.ToString(),
+            durationMs = Math.Round(e.Value.Duration.TotalMilliseconds),
+            description = e.Value.Description,
+        }),
+    }));
+}
