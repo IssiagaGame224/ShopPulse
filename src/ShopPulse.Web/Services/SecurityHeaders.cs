@@ -28,10 +28,12 @@ public static class SecurityHeaders
                      h["Cross-Origin-Resource-Policy"] = "same-origin";
                      h["X-Frame-Options"] = "DENY";
 
-                     h["Content-Security-Policy-Report-Only"] =
+                     // CSP APPLIQUÉE (plus Report-Only) : les E2E Playwright vérifient
+                     // qu'aucune ressource légitime n'est bloquée (scripts nonce/SRI,
+                     // Stripe, WebSocket SignalR, styles bootstrap inline).
+                     h["Content-Security-Policy"] =
                             "default-src 'self'; " +
-                            // js.stripe.com : Stripe.js (phase 6) — chargé dynamiquement par l'interop ;
-                            // en CSP stricte, prévoir le nonce sur le script injecté.
+                            // js.stripe.com : Stripe.js (phase 6) — chargé dynamiquement par l'interop.
                             $"script-src 'self' 'nonce-{nonce}' https://js.stripe.com; " +
                             "style-src 'self' 'unsafe-inline'; " +   // bootstrap/styles inline du modèle ; à resserrer
                             "img-src 'self' data:; " +

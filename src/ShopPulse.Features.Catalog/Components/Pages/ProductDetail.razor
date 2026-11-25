@@ -1,5 +1,7 @@
 @page "/product/{Id:int}"
+@using Microsoft.AspNetCore.Http
 @inject IProductService Products
+@inject IHttpContextAccessor HttpContextAccessor
 
 <PageTitle>@(_p?.Name ?? "Produit") — ShopPulse</PageTitle>
 <HeadContent>
@@ -7,7 +9,8 @@
        <link rel="canonical" href="https://shoppulse.example/product/@Id" />
        @if (_p is { } seo)
        {
-              <script type="application/ld+json">
+              @* JSON-LD : script inline → nonce CSP requis (clé "csp-nonce", voir SecurityHeaders). *@
+              <script type="application/ld+json" nonce="@HttpContextAccessor.HttpContext?.Items["csp-nonce"]">
                   { "@@context":"https://schema.org","@@type":"Product",
                     "name":"@seo.Name","sku":"@seo.Sku","description":"@seo.Description",
                     "offers":{ "@@type":"Offer","price":"@seo.Price","priceCurrency":"EUR",

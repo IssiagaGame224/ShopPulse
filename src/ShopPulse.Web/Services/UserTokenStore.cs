@@ -41,7 +41,7 @@ public sealed class UserTokenStore(
               try
               {
                      // Relecture : un autre appel a peut-être déjà rafraîchi pendant l'attente.
-                     if (cache.TryGetValue(Key(sub), out var fresh) && fresh is not null
+                     if (cache.TryGetValue(Key(sub), out Entry? fresh) && fresh is not null
                             && fresh.ExpiresAt - _margin > DateTimeOffset.UtcNow)
                             return fresh.AccessToken;
 
