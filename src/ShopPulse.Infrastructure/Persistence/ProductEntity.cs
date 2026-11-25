@@ -22,8 +22,9 @@ public class ProductEntity
        public required string Sku { get; set; }
        public List<string> Features { get; set; } = [];
 
-       public Product ToDomain() =>
-              new(Id, Name, Category.Name, Price, Stock, ImageUrl, Description, Sku, OldPrice, Features);
+       public Product ToDomain(double averageRating = 0, int reviewCount = 0) =>
+              new(Id, Name, Category.Name, Price, Stock, ImageUrl, Description, Sku, OldPrice,
+                     Features, averageRating, reviewCount);
 
        public static ProductEntity FromDomain(Product p) =>
               new() { Id = p.Id, Name = p.Name, CategoryId = CatalogSeed.CategoryIdOf(p.Category),

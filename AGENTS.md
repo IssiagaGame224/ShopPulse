@@ -61,12 +61,18 @@ requête `/api/v3/traces` ; trace Web→API→SQL vérifiée — `docs/25`), **a
 Prometheus + Alertmanager** (scrape de `/metrics`, 3 règles — `ServiceDown`,
 `HighHttp5xxRate`, `SlowRequestsP95` — notification email via Mailpit, chaîne
 prouvée par arrêt réel du conteneur web : `[FIRING]` reçu dans Mailpit ;
-configs dans `docker/prometheus/` et `docker/alertmanager/` — `docs/26`).
-Les tests E2E choisissent leurs produits en stock dynamiquement
-(`TestCatalog`, skip par classe) — les ids fixes finissaient à stock 0.
+configs dans `docker/prometheus/` et `docker/alertmanager/` — `docs/26`),
+**CI GitHub Actions** (2 jobs requis sur chaque PR : build + tests rapides,
+E2E + A11y sur pile compose ; health check NpgSql résolu paresseusement —
+`docs/27`), **avis clients** (table `reviews` : unicité `(ProductId, UserId)`
+et `CHECK` 1–5 en base, upsert par client, auteur = `preferred_username` du
+jeton, agrégat GROUP BY sans N+1 sur `Product.AverageRating/ReviewCount`,
+îlot `ProductReviewsSection` sur la fiche, étoiles `ProductCard`, modération
+`/admin/reviews` trilingue, E2E en collection séquentielle — `docs/28`).
 
 Évolutions possibles (non faites) : alertes métier (stock bas, ancienneté du
-dernier dump), backend de traces persistant, sauvegarde externalisée (règle 3-2-1).
+dernier dump), backend de traces persistant, sauvegarde externalisée (règle 3-2-1),
+i18n de la fiche produit publique, pagination des avis.
 
 ## 2. Structure du dépôt
 

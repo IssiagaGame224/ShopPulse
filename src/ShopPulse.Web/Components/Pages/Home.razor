@@ -41,7 +41,8 @@
                      @foreach (var p in _promos)
                      {
                             <ProductCard @key="p.Id" ImageUrl="@p.ImageUrl" Name="@p.Name"
-                                                Price="@p.Price" OldPrice="@p.OldPrice" Stock="@p.Stock">
+                                                Price="@p.Price" OldPrice="@p.OldPrice" Stock="@p.Stock"
+                                                AverageRating="@p.AverageRating" ReviewCount="@p.ReviewCount">
                                    <a href="/product/@p.Id">Voir</a>
                             </ProductCard>
                      }
@@ -57,7 +58,8 @@
                      @foreach (var p in _new)
                      {
                             <ProductCard @key="p.Id" ImageUrl="@p.ImageUrl" Name="@p.Name"
-                                                Price="@p.Price" OldPrice="@p.OldPrice" Stock="@p.Stock">
+                                                Price="@p.Price" OldPrice="@p.OldPrice" Stock="@p.Stock"
+                                                AverageRating="@p.AverageRating" ReviewCount="@p.ReviewCount">
                                    <a href="/product/@p.Id">Voir</a>
                             </ProductCard>
                      }

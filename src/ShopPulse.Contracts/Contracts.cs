@@ -23,6 +23,10 @@ public sealed record SetStockRequest(int ProductId, int Stock);
 /// <summary>Décrément de stock transactionnel (achat) : refusé si le stock est insuffisant.</summary>
 public sealed record DecrementStockRequest(int ProductId, int Quantity);
 
+/// <summary>Soumission d'un avis client : la note (1 à 5) et le commentaire seulement —
+/// l'auteur est déduit du jeton, jamais fourni par le client.</summary>
+public sealed record UpsertReviewRequest(int Rating, string Comment);
+
 /// <summary>Changement de statut d'une commande (back-office) : « Pending », « Paid »,
 /// « Shipped » ou « Cancelled » (chaîne pour garder Contracts sans dépendance Domain).</summary>
 public sealed record SetOrderStatusRequest(string Status);

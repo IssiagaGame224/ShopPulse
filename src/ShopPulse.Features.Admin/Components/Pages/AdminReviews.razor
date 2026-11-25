@@ -1,0 +1,74 @@
+@page "/admin/reviews"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = "CanManageStock")]
+@using Microsoft.Extensions.Localization
+@using ShopPulse.UI.Resources
+@inject IReviewService Reviews
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["AdminReviewsTitle"] — ShopPulse</PageTitle>
+<h1>@L["AdminReviewsTitle"]</h1>
+
+<nav aria-label="@L["BackOffice"]">
+       <a href="/admin/orders">@L["AdminOrdersTitle"]</a> · <a href="/admin/products">@L["AdminProductsTitle"]</a> · <a href="/admin/reviews" aria-current="page">@L["AdminReviewsTitle"]</a>
+</nav>
+
+@if (_reviews is null)
+{
+       <p aria-busy="true">@L["Loading"]</p>
+}
+else if (_reviews.Count == 0)
+{
+       <p>@L["NoReviews"]</p>
+}
+else
+{
+       <table>
+              <thead>
+                     <tr>
+                            <th>@L["ColProduct"]</th><th>@L["ColAuthor"]</th><th>@L["ColRating"]</th>
+                            <th>@L["ColComment"]</th><th>@L["ColDate"]</th><th></th>
+                     </tr>
+              </thead>
+              <tbody>
+                     @foreach (var r in _reviews)
+                     {
+                            <tr @key="r.Id">
+                                   <td><a href="/product/@r.ProductId">@r.ProductName</a></td>
+                                   <td>@r.AuthorName</td>
+                                   <td>@r.Rating/5</td>
+                                   <td>@r.Comment</td>
+                                   <td>@r.CreatedAt.ToString("d")</td>
+                                   <td>
+                                          <button type="button" @onclick="() => DeleteAsync(r.Id)"
+                                                  disabled="@_deleting">
+                                                 @L["DeleteReview"]
+                                          </button>
+                                   </td>
+                            </tr>
+                     }
+              </tbody>
+       </table>
+}
+
+@code {
+       private IReadOnlyList<AdminReview>? _reviews;
+       private bool _deleting;
+
+       protected override async Task OnInitializedAsync() =>
+              _reviews = await Reviews.GetForModerationAsync();
+
+       private async Task DeleteAsync(int id)
+       {
+              _deleting = true;
+              try
+              {
+                     if (await Reviews.DeleteAsync(id) && _reviews is not null)
+                            _reviews = [.. _reviews.Where(r => r.Id != id)];
+              }
+              finally
+              {
+                     _deleting = false;
+              }
+       }
+}

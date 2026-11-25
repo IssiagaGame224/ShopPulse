@@ -10,6 +10,7 @@ namespace ShopPulse.E2E;
 ///    pages principales (un style ou script bloqué serait journalisé « Refused to… »).
 /// Exige les serveurs de dev : API (5299) + Web (5026).
 /// </summary>
+[Collection("e2e")]
 public class CspE2eTests : IAsyncLifetime
 {
        private static readonly string WebUrl =

@@ -8,6 +8,7 @@ namespace ShopPulse.E2E;
 /// liée au compte malgré un token expiré depuis 15 s (preuve en base, docs/21). On se connecte, on attend 75 s (expiration),
 /// puis on achète : la commande doit être LIÉE au compte — preuve que le Web a
 /// rafraîchi l'access token via le refresh token (sinon : commande invitée).</summary>
+[Collection("e2e")]
 public class RefreshTokenE2eTests : IAsyncLifetime
 {
        private static readonly string WebUrl =

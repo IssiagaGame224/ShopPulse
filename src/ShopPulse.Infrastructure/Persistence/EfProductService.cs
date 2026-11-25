@@ -16,14 +16,16 @@ public class EfProductService(ShopPulseDbContext db) : IProductService, IProduct
        {
               var entities = await db.Products.AsNoTracking().Include(p => p.Category)
                      .OrderBy(p => p.Id).ToListAsync(ct);
-              return entities.Select(e => e.ToDomain()).ToList();
+              var ratings = await RatingsAsync(entities.Select(e => e.Id), ct);
+              return [.. entities.Select(e => WithRating(e, ratings))];
        }
 
        public async Task<Product?> GetByIdAsync(int id, CancellationToken ct = default)
        {
               var entity = await db.Products.AsNoTracking().Include(p => p.Category)
                      .FirstOrDefaultAsync(p => p.Id == id, ct);
-              return entity?.ToDomain();
+              if (entity is null) return null;
+              return WithRating(entity, await RatingsAsync([id], ct));
        }
 
        public async Task<PagedResult<Product>> GetPageAsync(
@@ -52,8 +54,25 @@ public class EfProductService(ShopPulseDbContext db) : IProductService, IProduct
               var total = await query.CountAsync(ct);
               var entities = await query.Include(p => p.Category)
                      .Skip(skip).Take(take).ToListAsync(ct);
-              return new PagedResult<Product>(entities.Select(e => e.ToDomain()).ToList(), total);
+              var ratings = await RatingsAsync(entities.Select(e => e.Id), ct);
+              return new PagedResult<Product>([.. entities.Select(e => WithRating(e, ratings))], total);
        }
+
+       /// <summary>Agrégats d'avis en UNE requête pour toute la page (GROUP BY SQL) —
+       /// jamais une requête par produit (N+1).</summary>
+       private async Task<Dictionary<int, (double Average, int Count)>> RatingsAsync(
+              IEnumerable<int> productIds, CancellationToken ct) =>
+              await db.Reviews.AsNoTracking()
+                     .Where(r => productIds.Contains(r.ProductId))
+                     .GroupBy(r => r.ProductId)
+                     .Select(g => new { Id = g.Key, Average = g.Average(r => (double)r.Rating), Count = g.Count() })
+                     .ToDictionaryAsync(x => x.Id, x => (Math.Round(x.Average, 1), x.Count), ct);
+
+       private static Product WithRating(ProductEntity e,
+              Dictionary<int, (double Average, int Count)> ratings) =>
+              ratings.TryGetValue(e.Id, out var r)
+                     ? e.ToDomain(r.Average, r.Count)
+                     : e.ToDomain();
 
        public async Task<IReadOnlyList<string>> GetCategoriesAsync(CancellationToken ct = default) =>
               await db.Categories.AsNoTracking().OrderBy(c => c.Name)

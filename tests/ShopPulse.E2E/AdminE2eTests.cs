@@ -10,6 +10,7 @@ namespace ShopPulse.E2E;
 /// Exige : API (5299) + Web (5026) + Keycloak (8080) + db + Mailpit.
 /// Compte du realm de dev : demo / demo1234 (rôle stock-manager).
 /// </summary>
+[Collection("e2e")]
 public class AdminE2eTests : IAsyncLifetime
 {
        private static readonly string WebUrl =
