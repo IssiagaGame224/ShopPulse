@@ -51,6 +51,9 @@ plus une refonte design e-commerce complète. Chaque étape est documentée dans
   ou un double-clic ne crée jamais de doublon ; prix **toujours recalculés serveur**
 - Paiement **Stripe** (Payment Element) : le webhook signé est la seule preuve de
   paiement ; simulateur intégré pour développer sans compte Stripe
+- **Livraison** tarifée côté serveur (offerte dès 60 €, avec progression dans le
+  panier), **TVA** en prix TTC stockée sur la commande, **restock automatique**
+  à l'annulation
 - Emails transactionnels (confirmation, statuts) — capturés par Mailpit en dev
 
 **Comptes & administration**

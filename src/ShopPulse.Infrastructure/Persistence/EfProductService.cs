@@ -98,6 +98,36 @@ public class EfProductService(ShopPulseDbContext db) : IProductService, IProduct
        public Task<bool> ExistsAsync(int id, CancellationToken ct = default) =>
               db.Products.AnyAsync(p => p.Id == id, ct);
 
+       /// <summary>Ré-incrément atomique du stock (annulation de commande) : même technique
+       /// que le décrément — un seul UPDATE, RETURNING pour le temps réel. Null si le
+       /// produit n'existe plus (supprimé du catalogue entre-temps : on ignore).</summary>
+       public async Task<int?> RestockAsync(int id, int quantity, CancellationToken ct = default)
+       {
+              if (quantity <= 0) throw new ArgumentOutOfRangeException(nameof(quantity));
+              var conn = db.Database.GetDbConnection();
+              var wasOpen = conn.State == ConnectionState.Open;
+              if (!wasOpen) await conn.OpenAsync(ct);
+              try
+              {
+                     await using var cmd = conn.CreateCommand();
+                     cmd.Transaction = db.Database.CurrentTransaction?.GetDbTransaction();
+                     cmd.CommandText = """
+                            UPDATE products SET "Stock" = "Stock" + @quantity
+                            WHERE "Id" = @id
+                            RETURNING "Stock";
+                            """;
+                     var pId = cmd.CreateParameter(); pId.ParameterName = "id"; pId.Value = id;
+                     var pQty = cmd.CreateParameter(); pQty.ParameterName = "quantity"; pQty.Value = quantity;
+                     cmd.Parameters.Add(pId); cmd.Parameters.Add(pQty);
+                     var result = await cmd.ExecuteScalarAsync(ct);
+                     return result is null or DBNull ? null : Convert.ToInt32(result);
+              }
+              finally
+              {
+                     if (!wasOpen) await conn.CloseAsync();
+              }
+       }
+
        // ---- Administration du catalogue (back-office) ----
 
        public async Task<ProductWriteResult> CreateAsync(ProductUpsert upsert, CancellationToken ct = default)

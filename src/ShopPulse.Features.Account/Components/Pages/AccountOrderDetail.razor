@@ -23,7 +23,24 @@ else
                      <li>@line.Quantity × @line.ProductName — @line.LineTotal.ToString("0.00") @_order.Currency</li>
               }
        </ul>
-       <p><strong>Total : @_order.Total.ToString("0.00") @_order.Currency</strong></p>
+       <dl class="summary-box">
+              <div>
+                     <dt>Sous-total</dt>
+                     <dd>@_order.Subtotal.ToString("0.00") @_order.Currency</dd>
+              </div>
+              <div>
+                     <dt>Livraison</dt>
+                     <dd>@(_order.ShippingCost > 0 ? $"{_order.ShippingCost:0.00} {_order.Currency}" : "Offerte")</dd>
+              </div>
+              <div class="total">
+                     <dt>Total</dt>
+                     <dd>@_order.Total.ToString("0.00") @_order.Currency</dd>
+              </div>
+              <div>
+                     <dt>dont TVA @((_order.TaxRate * 100).ToString("0")) %</dt>
+                     <dd>@_order.TaxAmount.ToString("0.00") @_order.Currency</dd>
+              </div>
+       </dl>
 
        <h2>Livraison</h2>
        <p>@_order.FullName<br />@_order.Address<br />@_order.PostalCode</p>

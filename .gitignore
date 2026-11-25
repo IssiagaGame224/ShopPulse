@@ -20,3 +20,6 @@ docs/manuscrit/
 
 # ---- Divers ----
 *.log
+
+# Sortie de build locale (contournement de verrous, machine de dev)
+bin-local/

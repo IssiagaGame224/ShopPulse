@@ -40,9 +40,13 @@ public interface IOrderAdmin
        Task<OrderWriteResult> SetStatusAsync(Guid orderId, OrderStatus status, CancellationToken ct = default);
 }
 
-public sealed record OrderWriteResult(Order? Order, string? Error)
+public sealed record OrderWriteResult(
+       Order? Order,
+       string? Error,
+       IReadOnlyList<(int ProductId, int NewStock)> StockUpdates)
 {
-       public static OrderWriteResult Ok(Order o) => new(o, null);
-       public static OrderWriteResult Invalid(string error) => new(null, error);
-       public static OrderWriteResult NotFound() => new(null, null);
+       public static OrderWriteResult Ok(Order o) => new(o, null, []);
+       public static OrderWriteResult Ok(Order o, IReadOnlyList<(int, int)> updates) => new(o, null, updates);
+       public static OrderWriteResult Invalid(string error) => new(null, error, []);
+       public static OrderWriteResult NotFound() => new(null, null, []);
 }

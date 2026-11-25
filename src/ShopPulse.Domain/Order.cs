@@ -15,7 +15,9 @@ public record OrderLine(int ProductId, string ProductName, decimal UnitPrice, in
 /// <summary>Commande. Les prix sont TOUJOURS recalculés côté serveur à la création ;
 /// l'adresse et l'email sont des instantanés (le client peut changer ensuite).
 /// UserId : sub Keycloak du client connecté (null = commande invitée).
-/// PaymentIntentId : référence du paiement (Stripe pi_… ou fake_… en dev).</summary>
+/// PaymentIntentId : référence du paiement (Stripe pi_… ou fake_… en dev).
+/// ShippingCost et TaxRate sont des instantanés commerciaux : la commande historique
+/// ne change pas si la boutique modifie ses tarifs ensuite.</summary>
 public record Order(
        Guid Id,
        string Email,
@@ -27,7 +29,17 @@ public record Order(
        DateTimeOffset CreatedAt,
        IReadOnlyList<OrderLine> Lines,
        string? UserId = null,
-       string? PaymentIntentId = null)
+       string? PaymentIntentId = null,
+       decimal ShippingCost = 0m,
+       decimal TaxRate = 0.20m)
 {
-       public decimal Total => Lines.Sum(l => l.LineTotal);
+       /// <summary>Marchandises TTC (somme des lignes).</summary>
+       public decimal Subtotal => Lines.Sum(l => l.LineTotal);
+
+       /// <summary>TVA incluse dans le sous-total (prix B2C : déduite, pas ajoutée).
+       /// La livraison est un service TTC au même taux dans ce modèle simple.</summary>
+       public decimal TaxAmount => Math.Round((Subtotal + ShippingCost) * TaxRate / (1 + TaxRate), 2);
+
+       /// <summary>Total à payer : marchandises + livraison, TTC.</summary>
+       public decimal Total => Subtotal + ShippingCost;
 }

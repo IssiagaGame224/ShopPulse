@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Npgsql;
 using ShopPulse.Application;
 using ShopPulse.Domain;
@@ -12,8 +11,8 @@ namespace ShopPulse.Infrastructure.Persistence;
 /// — idempotence : la clé unique fait qu'une reprise (retry, double-clic, rechargement)
 ///   rejoue la commande existante sans doublon ni double décrément — y compris sous
 ///   requêtes concurrentes (la violation d'unicité PostgreSQL sert de filet).</summary>
-public class EfOrderService(ShopPulseDbContext db, EfProductService products, IConfiguration config)
-       : IOrderPlacer, IOrderAdmin
+public class EfOrderService(ShopPulseDbContext db, EfProductService products,
+       IStoreConfigProvider storeConfig) : IOrderPlacer, IOrderAdmin
 {
        public async Task<OrderPlacement> PlaceOrderAsync(PlaceOrderCommand cmd, CancellationToken ct = default)
        {
@@ -54,6 +53,7 @@ public class EfOrderService(ShopPulseDbContext db, EfProductService products, IC
                      updates.Add((line.ProductId, newStock.Value));
               }
 
+              var store = await storeConfig.GetAsync(ct);
               var entity = new OrderEntity
               {
                      Id = Guid.CreateVersion7(),           // triable chronologiquement
@@ -63,9 +63,10 @@ public class EfOrderService(ShopPulseDbContext db, EfProductService products, IC
                      FullName = cmd.FullName,
                      Address = cmd.Address,
                      PostalCode = cmd.PostalCode,
-                     Currency = config["Store:Currency"] ?? "EUR",
+                     Currency = store.Currency,
                      Status = OrderStatus.Pending,          // le paiement (phase 6) la fera passer à Paid
                      CreatedAt = DateTimeOffset.UtcNow,
+                     TaxRate = store.VatRate,               // instantané : le taux peut changer plus tard
                      Lines = [.. cmd.Lines.Select(l =>
                      {
                             var p = catalog.First(c => c.Id == l.ProductId);
@@ -79,7 +80,10 @@ public class EfOrderService(ShopPulseDbContext db, EfProductService products, IC
                             };
                      })],
               };
-              entity.Total = entity.Lines.Sum(l => l.LineTotal);
+              // Livraison : règle unique StoreConfig (offerte dès le seuil), calculée
+              // ICI — jamais côté navigateur. Total = marchandises + livraison (TTC).
+              entity.ShippingCost = store.ShippingFor(entity.Lines.Sum(l => l.LineTotal));
+              entity.Total = entity.Lines.Sum(l => l.LineTotal) + entity.ShippingCost;
 
               db.Orders.Add(entity);
               try
@@ -149,6 +153,24 @@ public class EfOrderService(ShopPulseDbContext db, EfProductService products, IC
               if (!_transitions[entity.Status].Contains(status))
                      return OrderWriteResult.Invalid(
                             $"Transition interdite : {entity.Status} → {status}.");
+
+              // Annulation = les marchandises retournent en rayon : restock atomique
+              // dans la MÊME transaction que le changement de statut (tout ou rien).
+              if (status == OrderStatus.Cancelled)
+              {
+                     await using var tx = await db.Database.BeginTransactionAsync(ct);
+                     var updates = new List<(int, int)>();
+                     foreach (var line in entity.Lines)
+                     {
+                            var newStock = await products.RestockAsync(line.ProductId, line.Quantity, ct);
+                            if (newStock is { } stock)
+                                   updates.Add((line.ProductId, stock));
+                     }
+                     entity.Status = status;
+                     await db.SaveChangesAsync(ct);
+                     await tx.CommitAsync(ct);
+                     return OrderWriteResult.Ok(entity.ToDomain(), updates);
+              }
 
               entity.Status = status;
               await db.SaveChangesAsync(ct);

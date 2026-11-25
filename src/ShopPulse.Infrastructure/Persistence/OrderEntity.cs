@@ -20,12 +20,15 @@ public class OrderEntity
        public OrderStatus Status { get; set; }
        public DateTimeOffset CreatedAt { get; set; }
        public decimal Total { get; set; }
+       public decimal ShippingCost { get; set; }
+       public decimal TaxRate { get; set; }
        public string? PaymentIntentId { get; set; }
        public List<OrderLineEntity> Lines { get; set; } = [];
 
        public Order ToDomain() =>
               new(Id, Email, FullName, Address, PostalCode, Currency, Status, CreatedAt,
-                     Lines.Select(l => l.ToDomain()).ToList(), UserId, PaymentIntentId);
+                     Lines.Select(l => l.ToDomain()).ToList(), UserId, PaymentIntentId,
+                     ShippingCost, TaxRate);
 }
 
 /// <summary>Ligne persistée : ProductId est une référence SOUPLE (pas de clé étrangère
@@ -64,6 +67,8 @@ public class OrderEntityConfiguration : IEntityTypeConfiguration<OrderEntity>
               // Statut en clair dans la base ("Pending", "Paid"...) : lisible en SQL.
               o.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
               o.Property(x => x.Total).HasPrecision(18, 2);
+              o.Property(x => x.ShippingCost).HasPrecision(18, 2);
+              o.Property(x => x.TaxRate).HasPrecision(5, 4);
               o.Property(x => x.PaymentIntentId).HasMaxLength(100);
               o.HasMany(x => x.Lines).WithOne()
                      .HasForeignKey(l => l.OrderId)

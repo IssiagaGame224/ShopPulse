@@ -40,9 +40,15 @@ public sealed class SmtpOrderEmailSender(IConfiguration config, ILogger<SmtpOrde
               lines.AddRange(
               [
                      "",
+                     string.Create(CultureInfo.InvariantCulture, $"Sous-total : {order.Subtotal:0.00} {order.Currency}"),
+                     order.ShippingCost > 0
+                            ? string.Create(CultureInfo.InvariantCulture, $"Livraison : {order.ShippingCost:0.00} {order.Currency}")
+                            : "Livraison : offerte",
                      string.Create(CultureInfo.InvariantCulture, $"Total : {order.Total:0.00} {order.Currency}"),
+                     string.Create(CultureInfo.InvariantCulture,
+                            $"dont TVA {order.TaxRate:P0} : {order.TaxAmount:0.00} {order.Currency}"),
                      "",
-                     $"Livraison : {order.Address}, {order.PostalCode}",
+                     $"Livraison à : {order.Address}, {order.PostalCode}",
                      "",
                      "Merci de votre confiance — ShopPulse",
               ]);

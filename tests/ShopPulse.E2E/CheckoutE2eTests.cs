@@ -14,9 +14,12 @@ namespace ShopPulse.E2E;
 /// </summary>
 public class CheckoutE2eTests : IAsyncLifetime
 {
-       private const string WebUrl = "http://localhost:5026";
-       private const string ApiUrl = "http://localhost:5299";
-       private const string MailpitUrl = "http://localhost:8025";
+       private static readonly string WebUrl =
+              Environment.GetEnvironmentVariable("SHOPPULSE_WEBURL") ?? "http://localhost:5026";
+       private static readonly string ApiUrl =
+              Environment.GetEnvironmentVariable("SHOPPULSE_APIURL") ?? "http://localhost:5299";
+       private static readonly string MailpitUrl =
+              Environment.GetEnvironmentVariable("SHOPPULSE_MAILPITURL") ?? "http://localhost:8025";
        private const int ProductId = 2;
 
        private IPlaywright _pw = default!;

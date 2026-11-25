@@ -29,7 +29,10 @@ builder.Services.AddHybridCache();
 // Commandes (phase 3) : création transactionnelle + email de confirmation (Mailpit en dev).
 builder.Services.AddScoped<EfOrderService>();
 builder.Services.AddScoped<ShopPulse.Application.IOrderPlacer>(sp => sp.GetRequiredService<EfOrderService>());
+builder.Services.AddScoped<ShopPulse.Application.IOrderAdmin>(sp => sp.GetRequiredService<EfOrderService>());
 builder.Services.AddSingleton<ShopPulse.Application.IOrderEmailSender, SmtpOrderEmailSender>();
+// Paramètres commerciaux (livraison, TVA) : source unique lue par l'API et exposée au Web.
+builder.Services.AddSingleton<ShopPulse.Application.IStoreConfigProvider, StoreConfigProvider>();
 
 // Paiement (phase 6) : Stripe si les clés sont configurées (user-secrets / env),
 // sinon simulateur de dev — la boucle complète reste testable sans compte Stripe.
@@ -175,6 +178,17 @@ api.MapGet("/categories", async (ShopPulse.Application.IProductService s, HttpCo
 })
 .WithName("GetCategories")
 .Produces<IReadOnlyList<string>>(StatusCodes.Status200OK);
+
+// Paramètres commerciaux publics (livraison, TVA, devise) : le Web affiche le panier
+// avec LA MÊME règle que celle appliquée à la création de la commande.
+api.MapGet("/store/config", async (ShopPulse.Application.IStoreConfigProvider store,
+       HttpContext ctx, CancellationToken ct) =>
+{
+       ctx.Response.Headers.CacheControl = "public, max-age=300";
+       return Results.Ok(await store.GetAsync(ct));
+})
+.WithName("GetStoreConfig")
+.Produces<ShopPulse.Application.StoreConfig>(StatusCodes.Status200OK);
 
 api.MapPost("/stock", async (SetStockRequest req, EfProductService products, IStockPublisher publisher,
        HybridCache cache, CancellationToken ct) =>
@@ -385,6 +399,7 @@ admin.MapGet("/orders", async (string? status, EfOrderService orders, Cancellati
 
 admin.MapPut("/orders/{id:guid}/status", async (Guid id, SetOrderStatusRequest req,
        EfOrderService orders, ShopPulse.Application.IOrderEmailSender emails,
+       IStockPublisher publisher, HybridCache cache,
        ILogger<Program> logger, CancellationToken ct) =>
 {
        if (!Enum.TryParse<OrderStatus>(req.Status, ignoreCase: true, out var status))
@@ -395,6 +410,14 @@ admin.MapPut("/orders/{id:guid}/status", async (Guid id, SetOrderStatusRequest r
               return (IResult)Results.Conflict(new { error = result.Error });
        if (result.Order is null)
               return (IResult)Results.NotFound();
+
+       // Restock (annulation) : invalider le cache et publier les nouveaux stocks (temps réel).
+       if (result.StockUpdates.Count > 0)
+       {
+              await cache.RemoveByTagAsync("catalog", ct);
+              foreach (var (productId, newStock) in result.StockUpdates)
+                     await publisher.PublishAsync(productId, newStock);
+       }
 
        try
        {

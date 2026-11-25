@@ -13,8 +13,10 @@ namespace ShopPulse.E2E;
 /// </summary>
 public class AccountE2eTests : IAsyncLifetime
 {
-       private const string WebUrl = "http://localhost:5026";
-       private const string ApiUrl = "http://localhost:5299";
+       private static readonly string WebUrl =
+              Environment.GetEnvironmentVariable("SHOPPULSE_WEBURL") ?? "http://localhost:5026";
+       private static readonly string ApiUrl =
+              Environment.GetEnvironmentVariable("SHOPPULSE_APIURL") ?? "http://localhost:5299";
        private const int ProductId = 9;   // produit en stock (les ids multiples de 7 sont à 0)
 
        private IPlaywright _pw = default!;

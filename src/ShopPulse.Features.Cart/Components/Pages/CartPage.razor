@@ -7,6 +7,7 @@
 @inject CartStore Cart
 @inject QueryClient Query
 @inject IProductService Products
+@inject IStoreConfigProvider StoreConfigProvider
 
 <PageTitle>@L["CartTitle"] — ShopPulse</PageTitle>
 <h1>@L["CartTitle"]</h1>
@@ -50,18 +51,32 @@ else
        </ul>
 
        <aside class="cart-summary" aria-label="Récapitulatif du panier">
+              @{ var subtotal = Cart.State.Total(_catalog);
+                 var shipping = _store.ShippingFor(subtotal);
+                 var total = subtotal + shipping; }
+              @if (shipping > 0)
+              {
+                     <p class="free-shipping-hint">
+                            Plus que <strong>@((_store.ShippingFreeAbove - subtotal).ToString("0.00")) @_store.Currency</strong>
+                            pour la livraison offerte !
+                     </p>
+              }
               <dl>
                      <div>
                             <dt>Sous-total</dt>
-                            <dd>@Cart.State.Total(_catalog).ToString("C")</dd>
+                            <dd>@subtotal.ToString("C")</dd>
                      </div>
                      <div>
                             <dt>Livraison</dt>
-                            <dd>Calculée à l'étape suivante</dd>
+                            <dd>@(shipping > 0 ? shipping.ToString("C") : "Offerte")</dd>
                      </div>
                      <div class="total">
                             <dt>Total</dt>
-                            <dd>@Cart.State.Total(_catalog).ToString("C")</dd>
+                            <dd>@total.ToString("C")</dd>
+                     </div>
+                     <div>
+                            <dt>dont TVA @((_store.VatRate * 100).ToString("0")) %</dt>
+                            <dd>@_store.VatIncludedIn(total).ToString("C")</dd>
                      </div>
               </dl>
               <p>
@@ -73,6 +88,7 @@ else
 
 @code {
        private EntityState<Product> _catalog = EntityState<Product>.Empty;
+       private StoreConfig _store = new(5.90m, 60m, 0.20m, "EUR");
 
        protected override async Task OnInitializedAsync()
        {
@@ -83,5 +99,9 @@ else
               var all = await Query.GetAsync("products:all",
                      ct => Products.GetAllAsync(ct), TimeSpan.FromSeconds(30));
               _catalog = EntityState<Product>.Empty.UpsertMany(all, p => p.Id);
+
+              // La MÊME règle de livraison/TVA que le serveur (via l'API).
+              _store = await Query.GetAsync("store:config",
+                     ct => StoreConfigProvider.GetAsync(ct), TimeSpan.FromMinutes(5));
        }
 }

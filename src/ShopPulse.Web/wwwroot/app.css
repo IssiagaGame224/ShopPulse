@@ -231,3 +231,9 @@ table { border-collapse: collapse; width: 100%; background: var(--sp-color-surfa
 th, td { text-align: start; padding: var(--sp-space-2) var(--sp-space-3);
          border-block-end: 1px solid var(--sp-color-border); }
 thead th { border-block-end: 2px solid var(--sp-color-border); }
+
+/* Indice « livraison offerte » du panier */
+.free-shipping-hint { background: #e8f5ec; color: #14522b; border: 1px solid #1a7f37;
+        border-radius: var(--sp-radius); padding: var(--sp-space-2) var(--sp-space-3);
+        font-size: .9rem; }
+:root[data-theme="dark"] .free-shipping-hint { background: #14301e; color: #9fd8ae; }
