@@ -2,16 +2,19 @@
 @page "/admin/products/{Id:int}/edit"
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = "CanManageStock")]
+@using Microsoft.Extensions.Localization
+@using ShopPulse.UI.Resources
 @inject IProductService Products
 @inject IProductAdmin Admin
+@inject IStringLocalizer<SharedResource> L
 @inject NavigationManager Nav
 
-<PageTitle>@(Id is null ? "Nouveau produit" : "Modifier le produit") — Back-office ShopPulse</PageTitle>
-<h1>@(Id is null ? "Nouveau produit" : $"Modifier « {_model.Name} »")</h1>
+<PageTitle>@(Id is null ? L["NewProductTitle"].Value : string.Format(L["EditProductTitle"], _model.Name)) — ShopPulse</PageTitle>
+<h1>@(Id is null ? L["NewProductTitle"].Value : string.Format(L["EditProductTitle"], _model.Name))</h1>
 
 @if (_loading)
 {
-       <p aria-busy="true">Chargement…</p>
+       <p aria-busy="true">@L["Loading"]</p>
 }
 else
 {
@@ -19,15 +22,15 @@ else
               <DataAnnotationsValidator />
 
               <p>
-                     <label for="sku">Référence (SKU)</label>
+                     <label for="sku">@L["SkuLabel"]</label>
                      <InputText id="sku" @bind-Value="_model.Sku" />
               </p>
               <p>
-                     <label for="name">Nom</label>
+                     <label for="name">@L["ColName"]</label>
                      <InputText id="name" @bind-Value="_model.Name" />
               </p>
               <p>
-                     <label for="cat">Catégorie</label>
+                     <label for="cat">@L["ColCategory"]</label>
                      <InputSelect id="cat" @bind-Value="_model.Category">
                             @foreach (var c in _categories)
                             {
@@ -36,32 +39,32 @@ else
                      </InputSelect>
               </p>
               <p>
-                     <label for="price">Prix</label>
+                     <label for="price">@L["ColPrice"]</label>
                      <InputNumber id="price" @bind-Value="_model.Price" />
               </p>
               <p>
-                     <label for="oldprice">Prix barré (vide = pas de promo)</label>
+                     <label for="oldprice">@L["OldPriceLabel"]</label>
                      <InputNumber id="oldprice" @bind-Value="_model.OldPrice" />
               </p>
               <p>
-                     <label for="stock">Stock</label>
+                     <label for="stock">@L["ColStock"]</label>
                      <InputNumber id="stock" @bind-Value="_model.Stock" />
               </p>
               <p>
-                     <label for="img">Image (chemin)</label>
+                     <label for="img">@L["ImageLabel"]</label>
                      <InputText id="img" @bind-Value="_model.ImageUrl" />
               </p>
               <p>
-                     <label for="desc">Description</label>
+                     <label for="desc">@L["DescriptionLabel"]</label>
                      <InputTextArea id="desc" rows="4" @bind-Value="_model.Description" />
               </p>
               <p>
-                     <label for="features">Caractéristiques (une par ligne)</label>
+                     <label for="features">@L["FeaturesLabel"]</label>
                      <InputTextArea id="features" rows="5" @bind-Value="_model.FeaturesText" />
               </p>
 
-              <button type="submit" disabled="@_saving">@(_saving ? "Enregistrement…" : "Enregistrer")</button>
-              <a href="/admin/products">Annuler</a>
+              <button type="submit" disabled="@_saving">@(_saving ? L["Saving"] : L["SaveAction"])</button>
+              <a href="/admin/products">@L["CancelAction"]</a>
        </EditForm>
 
        @if (_error is not null)
@@ -100,7 +103,7 @@ else
                      }
                      else
                      {
-                            _error = $"Produit {id} introuvable.";
+                            _error = string.Format(L["ProductNotFound"], id);
                      }
               }
               _loading = false;

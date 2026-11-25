@@ -83,4 +83,127 @@
   <data name="TrackingInvalidHint" xml:space="preserve">
     <value>رابط التتبع هذا غير صالح أو غير مكتمل. تحقق من العنوان المستلم عبر البريد الإلكتروني.</value>
   </data>
+  <data name="AdminOrdersTitle" xml:space="preserve">
+    <value>الطلبات</value>
+  </data>
+  <data name="AdminProductsTitle" xml:space="preserve">
+    <value>المنتجات</value>
+  </data>
+  <data name="BackOffice" xml:space="preserve">
+    <value>الإدارة</value>
+  </data>
+  <data name="FilterStatus" xml:space="preserve">
+    <value>الحالة:</value>
+  </data>
+  <data name="FilterAll" xml:space="preserve">
+    <value>الكل</value>
+  </data>
+  <data name="StatusPendingM" xml:space="preserve">
+    <value>قيد الانتظار</value>
+  </data>
+  <data name="StatusPaidM" xml:space="preserve">
+    <value>مدفوعة</value>
+  </data>
+  <data name="StatusShippedM" xml:space="preserve">
+    <value>مشحونة</value>
+  </data>
+  <data name="StatusCancelledM" xml:space="preserve">
+    <value>ملغاة</value>
+  </data>
+  <data name="ColReference" xml:space="preserve">
+    <value>المرجع</value>
+  </data>
+  <data name="ColDate" xml:space="preserve">
+    <value>التاريخ</value>
+  </data>
+  <data name="ColCustomer" xml:space="preserve">
+    <value>العميل</value>
+  </data>
+  <data name="ColTotal" xml:space="preserve">
+    <value>الإجمالي</value>
+  </data>
+  <data name="ColStatus" xml:space="preserve">
+    <value>الحالة</value>
+  </data>
+  <data name="ColActions" xml:space="preserve">
+    <value>إجراءات</value>
+  </data>
+  <data name="MarkPaid" xml:space="preserve">
+    <value>وضع علامة مدفوع</value>
+  </data>
+  <data name="MarkShipped" xml:space="preserve">
+    <value>وضع علامة مشحون</value>
+  </data>
+  <data name="CancelAction" xml:space="preserve">
+    <value>إلغاء</value>
+  </data>
+  <data name="AdminOrdersCount" xml:space="preserve">
+    <value>{0} طلب — صفحة {1} / {2}</value>
+  </data>
+  <data name="NoOrdersForFilter" xml:space="preserve">
+    <value>لا توجد طلبات لهذا الفلتر.</value>
+  </data>
+  <data name="PrevPage" xml:space="preserve">
+    <value>→ السابق</value>
+  </data>
+  <data name="NextPage" xml:space="preserve">
+    <value>التالي ←</value>
+  </data>
+  <data name="NewProduct" xml:space="preserve">
+    <value>+ منتج جديد</value>
+  </data>
+  <data name="ColName" xml:space="preserve">
+    <value>الاسم</value>
+  </data>
+  <data name="ColCategory" xml:space="preserve">
+    <value>الفئة</value>
+  </data>
+  <data name="ColPrice" xml:space="preserve">
+    <value>السعر</value>
+  </data>
+  <data name="ColOldPrice" xml:space="preserve">
+    <value>السعر القديم</value>
+  </data>
+  <data name="ColStock" xml:space="preserve">
+    <value>المخزون</value>
+  </data>
+  <data name="EditAction" xml:space="preserve">
+    <value>تعديل</value>
+  </data>
+  <data name="NewProductTitle" xml:space="preserve">
+    <value>منتج جديد</value>
+  </data>
+  <data name="EditProductTitle" xml:space="preserve">
+    <value>تعديل "{0}"</value>
+  </data>
+  <data name="SkuLabel" xml:space="preserve">
+    <value>المرجع (SKU)</value>
+  </data>
+  <data name="OldPriceLabel" xml:space="preserve">
+    <value>السعر القديم (فارغ = لا تخفيض)</value>
+  </data>
+  <data name="ImageLabel" xml:space="preserve">
+    <value>الصورة (المسار)</value>
+  </data>
+  <data name="DescriptionLabel" xml:space="preserve">
+    <value>الوصف</value>
+  </data>
+  <data name="FeaturesLabel" xml:space="preserve">
+    <value>الخصائص (واحدة في كل سطر)</value>
+  </data>
+  <data name="SaveAction" xml:space="preserve">
+    <value>حفظ</value>
+  </data>
+  <data name="Saving" xml:space="preserve">
+    <value>جارٍ الحفظ…</value>
+  </data>
+  <data name="ProductNotFound" xml:space="preserve">
+    <value>المنتج {0} غير موجود.</value>
+  </data>
+  <data name="PaginationLabel" xml:space="preserve">
+    <value>ترقيم الصفحات</value>
+  </data>
+  <data name="PageXofY" xml:space="preserve">
+    <value>صفحة {0} / {1}</value>
+  </data>
 </root>

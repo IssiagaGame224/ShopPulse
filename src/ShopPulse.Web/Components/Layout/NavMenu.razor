@@ -1,3 +1,7 @@
+@using Microsoft.Extensions.Localization
+@using ShopPulse.UI.Resources
+@inject IStringLocalizer<SharedResource> L
+
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">ShopPulse</a>
@@ -48,7 +52,7 @@
             <Authorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="admin/orders">
-                        <span class="bi bi-grid-nav-menu" aria-hidden="true"></span> Back-office
+                        <span class="bi bi-grid-nav-menu" aria-hidden="true"></span> @L["BackOffice"]
                     </NavLink>
                 </div>
             </Authorized>

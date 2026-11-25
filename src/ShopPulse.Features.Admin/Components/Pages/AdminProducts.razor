@@ -1,28 +1,31 @@
 @page "/admin/products"
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = "CanManageStock")]
+@using Microsoft.Extensions.Localization
+@using ShopPulse.UI.Resources
 @inject IProductService Products
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Produits — Back-office ShopPulse</PageTitle>
-<h1>Produits</h1>
+<PageTitle>@L["AdminProductsTitle"] — ShopPulse</PageTitle>
+<h1>@L["AdminProductsTitle"]</h1>
 
-<nav aria-label="Back-office">
-       <a href="/admin/orders">Commandes</a> · <a href="/admin/products" aria-current="page">Produits</a>
+<nav aria-label="@L["BackOffice"]">
+       <a href="/admin/orders">@L["AdminOrdersTitle"]</a> · <a href="/admin/products" aria-current="page">@L["AdminProductsTitle"]</a>
 </nav>
 
-<p><a href="/admin/products/new">+ Nouveau produit</a></p>
+<p><a href="/admin/products/new">@L["NewProduct"]</a></p>
 
 @if (_products is null)
 {
-       <p aria-busy="true">Chargement…</p>
+       <p aria-busy="true">@L["Loading"]</p>
 }
 else
 {
        <table>
               <thead>
                      <tr>
-                            <th>Référence</th><th>Nom</th><th>Catégorie</th>
-                            <th>Prix</th><th>Prix barré</th><th>Stock</th><th></th>
+                            <th>@L["ColReference"]</th><th>@L["ColName"]</th><th>@L["ColCategory"]</th>
+                            <th>@L["ColPrice"]</th><th>@L["ColOldPrice"]</th><th>@L["ColStock"]</th><th></th>
                      </tr>
               </thead>
               <tbody>
@@ -35,7 +38,7 @@ else
                                    <td>@p.Price.ToString("0.00")</td>
                                    <td>@(p.OldPrice?.ToString("0.00") ?? "—")</td>
                                    <td>@p.Stock</td>
-                                   <td><a href="/admin/products/@p.Id/edit">Modifier</a></td>
+                                   <td><a href="/admin/products/@p.Id/edit">@L["EditAction"]</a></td>
                             </tr>
                      }
               </tbody>

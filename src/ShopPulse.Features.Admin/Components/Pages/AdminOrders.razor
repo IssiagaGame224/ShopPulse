@@ -1,42 +1,45 @@
 @page "/admin/orders"
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = "CanManageStock")]
+@using Microsoft.Extensions.Localization
+@using ShopPulse.UI.Resources
 @inject IOrderAdmin Orders
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Commandes — Back-office ShopPulse</PageTitle>
-<h1>Commandes</h1>
+<PageTitle>@L["AdminOrdersTitle"] — ShopPulse</PageTitle>
+<h1>@L["AdminOrdersTitle"]</h1>
 
-<nav aria-label="Back-office">
-       <a href="/admin/orders" aria-current="page">Commandes</a> · <a href="/admin/products">Produits</a>
+<nav aria-label="@L["BackOffice"]">
+       <a href="/admin/orders" aria-current="page">@L["AdminOrdersTitle"]</a> · <a href="/admin/products">@L["AdminProductsTitle"]</a>
 </nav>
 
 <p>
-       <label for="filtre">Statut :</label>
+       <label for="filtre">@L["FilterStatus"]</label>
        <select id="filtre" @bind="_filter" @bind:after="FilterChangedAsync">
-              <option value="">Toutes</option>
-              <option value="Pending">En attente</option>
-              <option value="Paid">Payées</option>
-              <option value="Shipped">Expédiées</option>
-              <option value="Cancelled">Annulées</option>
+              <option value="">@L["FilterAll"]</option>
+              <option value="Pending">@L["StatusPendingM"]</option>
+              <option value="Paid">@L["StatusPaidM"]</option>
+              <option value="Shipped">@L["StatusShippedM"]</option>
+              <option value="Cancelled">@L["StatusCancelledM"]</option>
        </select>
 </p>
 
 @if (_orders is null)
 {
-       <p aria-busy="true">Chargement…</p>
+       <p aria-busy="true">@L["Loading"]</p>
 }
 else if (_orders.Items.Count == 0)
 {
-       <p>Aucune commande pour ce filtre.</p>
+       <p>@L["NoOrdersForFilter"]</p>
 }
 else
 {
-       <p class="results-count">@_orders.Total commande(s) — page @_page / @_pageCount</p>
+       <p class="results-count">@string.Format(L["AdminOrdersCount"], _orders.Total, _page, _pageCount)</p>
        <table>
               <thead>
                      <tr>
-                            <th>Référence</th><th>Date</th><th>Client</th>
-                            <th>Total</th><th>Statut</th><th>Actions</th>
+                            <th>@L["ColReference"]</th><th>@L["ColDate"]</th><th>@L["ColCustomer"]</th>
+                            <th>@L["ColTotal"]</th><th>@L["ColStatus"]</th><th>@L["ColActions"]</th>
                      </tr>
               </thead>
               <tbody>
@@ -47,19 +50,19 @@ else
                                    <td>@order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
                                    <td>@order.FullName<br /><small>@order.Email</small></td>
                                    <td>@order.Total.ToString("0.00") @order.Currency</td>
-                                   <td>@Label(order.Status)</td>
+                                   <td>@StatusLabel(order.Status)</td>
                                    <td>
                                           @if (order.Status == OrderStatus.Pending)
                                           {
-                                                 <button disabled="@_busy" @onclick="() => SetStatusAsync(order.Id, OrderStatus.Paid)">Marquer payée</button>
+                                                 <button disabled="@_busy" @onclick="() => SetStatusAsync(order.Id, OrderStatus.Paid)">@L["MarkPaid"]</button>
                                           }
                                           @if (order.Status == OrderStatus.Paid)
                                           {
-                                                 <button disabled="@_busy" @onclick="() => SetStatusAsync(order.Id, OrderStatus.Shipped)">Marquer expédiée</button>
+                                                 <button disabled="@_busy" @onclick="() => SetStatusAsync(order.Id, OrderStatus.Shipped)">@L["MarkShipped"]</button>
                                           }
                                           @if (order.Status is OrderStatus.Pending or OrderStatus.Paid)
                                           {
-                                                 <button disabled="@_busy" @onclick="() => SetStatusAsync(order.Id, OrderStatus.Cancelled)">Annuler</button>
+                                                 <button disabled="@_busy" @onclick="() => SetStatusAsync(order.Id, OrderStatus.Cancelled)">@L["CancelAction"]</button>
                                           }
                                    </td>
                             </tr>
@@ -68,10 +71,10 @@ else
        </table>
        @if (_pageCount > 1)
        {
-              <nav aria-label="Pagination" class="filters">
-                     <button disabled="@(_page <= 1)" @onclick="() => GoToPageAsync(_page - 1)">← Précédent</button>
-                     <span>Page @_page / @_pageCount</span>
-                     <button disabled="@(_page >= _pageCount)" @onclick="() => GoToPageAsync(_page + 1)">Suivant →</button>
+              <nav aria-label="@L["PaginationLabel"]" class="filters">
+                     <button disabled="@(_page <= 1)" @onclick="() => GoToPageAsync(_page - 1)">@L["PrevPage"]</button>
+                     <span>@string.Format(L["PageXofY"], _page, _pageCount)</span>
+                     <button disabled="@(_page >= _pageCount)" @onclick="() => GoToPageAsync(_page + 1)">@L["NextPage"]</button>
               </nav>
        }
 }
@@ -126,14 +129,12 @@ else
               }
        }
 
-       // Libellés en clair (dupliqués de la feature Account : 6 lignes, pas de
-       // dépendance inter-features pour ça).
-       internal static string Label(OrderStatus status) => status switch
+       private string StatusLabel(OrderStatus status) => status switch
        {
-              OrderStatus.Pending => "en attente",
-              OrderStatus.Paid => "payée",
-              OrderStatus.Shipped => "expédiée",
-              OrderStatus.Cancelled => "annulée",
+              OrderStatus.Pending => L["StatusPending"],
+              OrderStatus.Paid => L["StatusPaid"],
+              OrderStatus.Shipped => L["StatusShipped"],
+              OrderStatus.Cancelled => L["StatusCancelled"],
               _ => status.ToString(),
        };
 }

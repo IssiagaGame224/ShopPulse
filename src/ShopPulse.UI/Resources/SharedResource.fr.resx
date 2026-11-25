@@ -80,4 +80,127 @@
   <data name="TrackingInvalidHint" xml:space="preserve">
     <value>Ce lien de suivi est invalide ou incomplet. Vérifiez l'adresse reçue par email.</value>
   </data>
+  <data name="AdminOrdersTitle" xml:space="preserve">
+    <value>Commandes</value>
+  </data>
+  <data name="AdminProductsTitle" xml:space="preserve">
+    <value>Produits</value>
+  </data>
+  <data name="BackOffice" xml:space="preserve">
+    <value>Back-office</value>
+  </data>
+  <data name="FilterStatus" xml:space="preserve">
+    <value>Statut :</value>
+  </data>
+  <data name="FilterAll" xml:space="preserve">
+    <value>Toutes</value>
+  </data>
+  <data name="StatusPendingM" xml:space="preserve">
+    <value>En attente</value>
+  </data>
+  <data name="StatusPaidM" xml:space="preserve">
+    <value>Payées</value>
+  </data>
+  <data name="StatusShippedM" xml:space="preserve">
+    <value>Expédiées</value>
+  </data>
+  <data name="StatusCancelledM" xml:space="preserve">
+    <value>Annulées</value>
+  </data>
+  <data name="ColReference" xml:space="preserve">
+    <value>Référence</value>
+  </data>
+  <data name="ColDate" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="ColCustomer" xml:space="preserve">
+    <value>Client</value>
+  </data>
+  <data name="ColTotal" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="ColStatus" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="ColActions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="MarkPaid" xml:space="preserve">
+    <value>Marquer payée</value>
+  </data>
+  <data name="MarkShipped" xml:space="preserve">
+    <value>Marquer expédiée</value>
+  </data>
+  <data name="CancelAction" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="AdminOrdersCount" xml:space="preserve">
+    <value>{0} commande(s) — page {1} / {2}</value>
+  </data>
+  <data name="NoOrdersForFilter" xml:space="preserve">
+    <value>Aucune commande pour ce filtre.</value>
+  </data>
+  <data name="PrevPage" xml:space="preserve">
+    <value>← Précédent</value>
+  </data>
+  <data name="NextPage" xml:space="preserve">
+    <value>Suivant →</value>
+  </data>
+  <data name="NewProduct" xml:space="preserve">
+    <value>+ Nouveau produit</value>
+  </data>
+  <data name="ColName" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="ColCategory" xml:space="preserve">
+    <value>Catégorie</value>
+  </data>
+  <data name="ColPrice" xml:space="preserve">
+    <value>Prix</value>
+  </data>
+  <data name="ColOldPrice" xml:space="preserve">
+    <value>Prix barré</value>
+  </data>
+  <data name="ColStock" xml:space="preserve">
+    <value>Stock</value>
+  </data>
+  <data name="EditAction" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="NewProductTitle" xml:space="preserve">
+    <value>Nouveau produit</value>
+  </data>
+  <data name="EditProductTitle" xml:space="preserve">
+    <value>Modifier « {0} »</value>
+  </data>
+  <data name="SkuLabel" xml:space="preserve">
+    <value>Référence (SKU)</value>
+  </data>
+  <data name="OldPriceLabel" xml:space="preserve">
+    <value>Prix barré (vide = pas de promo)</value>
+  </data>
+  <data name="ImageLabel" xml:space="preserve">
+    <value>Image (chemin)</value>
+  </data>
+  <data name="DescriptionLabel" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="FeaturesLabel" xml:space="preserve">
+    <value>Caractéristiques (une par ligne)</value>
+  </data>
+  <data name="SaveAction" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="Saving" xml:space="preserve">
+    <value>Enregistrement…</value>
+  </data>
+  <data name="ProductNotFound" xml:space="preserve">
+    <value>Produit {0} introuvable.</value>
+  </data>
+  <data name="PaginationLabel" xml:space="preserve">
+    <value>Pagination</value>
+  </data>
+  <data name="PageXofY" xml:space="preserve">
+    <value>Page {0} / {1}</value>
+  </data>
 </root>
