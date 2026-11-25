@@ -47,4 +47,20 @@ public sealed record PlaceOrderRequest(
        string FullName,
        string Address,
        string PostalCode,
-       IReadOnlyList<PlaceOrderLineRequest> Lines);
+       IReadOnlyList<PlaceOrderLineRequest> Lines,
+       string? PromoCode = null);
+
+/// <summary>Validation d'un code promo pour l'aperçu panier (SANS consommation —
+/// la consommation a lieu dans la transaction de la commande).</summary>
+public sealed record ValidatePromoRequest(string Code, decimal Subtotal);
+
+/// <summary>Réponse de validation : le code normalisé, son type ("Percent"/"Amount"),
+/// sa valeur, et la remise calculée pour le sous-total fourni.</summary>
+public sealed record PromoValidationDto(string Code, string Kind, decimal Value, decimal Discount);
+
+/// <summary>Création d'un code promo (back-office).</summary>
+public sealed record CreatePromoCodeRequest(
+       string Code, string Kind, decimal Value, DateTimeOffset? ExpiresAt, int? MaxUses);
+
+/// <summary>Activation/désactivation d'un code promo (back-office).</summary>
+public sealed record SetPromoActiveRequest(bool Active);

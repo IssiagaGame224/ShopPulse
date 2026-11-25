@@ -8,6 +8,7 @@
 @inject QueryClient Query
 @inject IProductService Products
 @inject IStoreConfigProvider StoreConfigProvider
+@inject IPromoService Promos
 
 <PageTitle>@L["CartTitle"] — ShopPulse</PageTitle>
 <h1>@L["CartTitle"]</h1>
@@ -52,20 +53,52 @@ else
 
        <aside class="cart-summary" aria-label="Récapitulatif du panier">
               @{ var subtotal = Cart.State.Total(_catalog);
-                 var shipping = _store.ShippingFor(subtotal);
-                 var total = subtotal + shipping; }
+                 var discount = _promo?.DiscountFor(subtotal) ?? 0m;
+                 var shipping = _store.ShippingFor(subtotal - discount);
+                 var total = subtotal - discount + shipping; }
               @if (shipping > 0)
               {
                      <p class="free-shipping-hint">
-                            Plus que <strong>@((_store.ShippingFreeAbove - subtotal).ToString("0.00")) @_store.Currency</strong>
+                            Plus que <strong>@((_store.ShippingFreeAbove - (subtotal - discount)).ToString("0.00")) @_store.Currency</strong>
                             pour la livraison offerte !
                      </p>
               }
+              <div class="promo-row">
+                     @if (Cart.State.PromoCode is { } applied)
+                     {
+                            <p class="promo-applied">
+                                   Code <strong>@applied</strong> appliqué
+                                   <button type="button" @onclick="RemovePromo">Retirer</button>
+                            </p>
+                     }
+                     else
+                     {
+                            <label for="promo-code">Code promo</label>
+                            <div class="promo-input">
+                                   <input id="promo-code" @bind="_promoInput" maxlength="32"
+                                          placeholder="Ex. BIENVENUE10" />
+                                   <button type="button" @onclick="ApplyPromoAsync" disabled="@_checkingPromo">
+                                          @(_checkingPromo ? "…" : "Appliquer")
+                                   </button>
+                            </div>
+                            @if (_promoError is not null)
+                            {
+                                   <p role="alert" class="promo-error">@_promoError</p>
+                            }
+                     }
+              </div>
               <dl>
                      <div>
                             <dt>Sous-total</dt>
                             <dd>@subtotal.ToString("C")</dd>
                      </div>
+                     @if (discount > 0)
+                     {
+                            <div class="discount">
+                                   <dt>Remise (@Cart.State.PromoCode)</dt>
+                                   <dd>−@discount.ToString("C")</dd>
+                            </div>
+                     }
                      <div>
                             <dt>Livraison</dt>
                             <dd>@(shipping > 0 ? shipping.ToString("C") : "Offerte")</dd>
@@ -89,6 +122,10 @@ else
 @code {
        private EntityState<Product> _catalog = EntityState<Product>.Empty;
        private StoreConfig _store = new(5.90m, 60m, 0.20m, "EUR");
+       private string _promoInput = "";
+       private PromoPreview? _promo;
+       private string? _promoError;
+       private bool _checkingPromo;
 
        protected override async Task OnInitializedAsync()
        {
@@ -103,5 +140,41 @@ else
               // La MÊME règle de livraison/TVA que le serveur (via l'API).
               _store = await Query.GetAsync("store:config",
                      ct => StoreConfigProvider.GetAsync(ct), TimeSpan.FromMinutes(5));
+
+              // Code déjà appliqué dans ce circuit : revalider pour l'aperçu.
+              if (Cart.State.PromoCode is { } existing)
+                     _promo = await Promos.ValidateAsync(existing, Cart.State.Total(_catalog));
+       }
+
+       /// <summary>Validation serveur SANS consommation : le code n'est réellement
+       /// consommé qu'à la création de la commande (le serveur re-calcule tout).</summary>
+       private async Task ApplyPromoAsync()
+       {
+              _promoError = null;
+              if (string.IsNullOrWhiteSpace(_promoInput)) return;
+              _checkingPromo = true;
+              try
+              {
+                     var preview = await Promos.ValidateAsync(_promoInput, Cart.State.Total(_catalog));
+                     if (preview is null)
+                     {
+                            _promoError = "Code promo invalide, expiré ou épuisé.";
+                            return;
+                     }
+                     _promo = preview;
+                     Cart.SetPromoCode(preview.Code);
+              }
+              finally
+              {
+                     _checkingPromo = false;
+              }
+       }
+
+       private void RemovePromo()
+       {
+              _promo = null;
+              _promoInput = "";
+              _promoError = null;
+              Cart.SetPromoCode(null);
        }
 }

@@ -31,6 +31,14 @@ public sealed class CartStore : Store<CartState>, ICartGateway
        public void Replace(IEnumerable<CartLine> lines) => Set(_ => new CartState(lines.ToImmutableList()));
        public void Clear() => Set(_ => CartState.Empty);
 
+       /// <summary>Code promo validé (aperçu panier) : il voyagera jusqu'à la création
+       /// de la commande, où le serveur le re-valide et le consomme — seul cet appel
+       /// fait foi. Null pour retirer le code.</summary>
+       public void SetPromoCode(string? code) => Set(s => s with { PromoCode = code });
+
        /// <summary>Lecture pour le tunnel de commande (port ICartGateway).</summary>
        public IReadOnlyList<CartLine> Lines => State.Lines;
+
+       /// <summary>Code promo du panier (port ICartGateway).</summary>
+       public string? PromoCode => State.PromoCode;
 }

@@ -26,7 +26,8 @@ public sealed class OrderApiClient(IHttpClientFactory factory) : IOrderPlacer, I
               {
                      Content = JsonContent.Create(new PlaceOrderRequest(cmd.Email, cmd.FullName,
                             cmd.Address, cmd.PostalCode,
-                            [.. cmd.Lines.Select(l => new PlaceOrderLineRequest(l.ProductId, l.Quantity))]))
+                            [.. cmd.Lines.Select(l => new PlaceOrderLineRequest(l.ProductId, l.Quantity))],
+                            cmd.PromoCode))
               };
               request.Headers.Add("Idempotency-Key", cmd.IdempotencyKey);
 

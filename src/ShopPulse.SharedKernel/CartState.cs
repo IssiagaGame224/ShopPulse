@@ -4,7 +4,7 @@ namespace ShopPulse.SharedKernel;
 
 public sealed record CartLine(int ProductId, int Quantity);
 
-public sealed record CartState(ImmutableList<CartLine> Lines)
+public sealed record CartState(ImmutableList<CartLine> Lines, string? PromoCode = null)
 {
        public static CartState Empty { get; } = new(ImmutableList<CartLine>.Empty);
 

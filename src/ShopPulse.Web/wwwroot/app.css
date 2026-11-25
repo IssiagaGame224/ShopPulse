@@ -274,3 +274,17 @@ thead th { border-block-end: 2px solid var(--sp-color-border); }
         padding-block: var(--sp-space-2); }
 .review-meta { display: flex; gap: var(--sp-space-2); align-items: baseline; flex-wrap: wrap; }
 .review-own { font-size: .85rem; opacity: .75; }
+
+/* Codes promo (docs/29) : champ panier + création back-office */
+.promo-row { margin-block-end: var(--sp-space-2); }
+.promo-input { display: flex; gap: var(--sp-space-1); }
+.promo-input input { flex: 1; padding: var(--sp-space-1) var(--sp-space-2);
+        border: 1px solid var(--sp-color-border); border-radius: 6px;
+        background: var(--sp-color-surface); color: var(--sp-color-text); font: inherit; }
+.promo-applied { display: flex; gap: var(--sp-space-2); align-items: baseline; }
+.promo-error { color: #b3261e; }
+.cart-summary .discount dd, .cart-summary .discount dt { color: var(--sp-color-primary); font-weight: 600; }
+.promo-create { border: 1px solid var(--sp-color-border); border-radius: 8px;
+        padding: var(--sp-space-3); margin-block-end: var(--sp-space-3); max-width: 48rem; }
+.promo-create-grid { display: flex; gap: var(--sp-space-3); flex-wrap: wrap; margin-block-end: var(--sp-space-2); }
+.promo-create-grid label { display: flex; flex-direction: column; gap: var(--sp-space-1); }

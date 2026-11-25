@@ -75,6 +75,7 @@ builder.Services.AddScoped<EfOrderService>();
 builder.Services.AddScoped<ShopPulse.Application.IOrderPlacer>(sp => sp.GetRequiredService<EfOrderService>());
 builder.Services.AddScoped<ShopPulse.Application.IOrderAdmin>(sp => sp.GetRequiredService<EfOrderService>());
 builder.Services.AddScoped<EfReviewService>();
+builder.Services.AddScoped<EfPromoService>();
 builder.Services.AddSingleton<ShopPulse.Application.IOrderEmailSender, SmtpOrderEmailSender>();
 // Paramètres commerciaux (livraison, TVA) : source unique lue par l'API et exposée au Web.
 builder.Services.AddSingleton<ShopPulse.Application.IStoreConfigProvider, StoreConfigProvider>();
@@ -327,6 +328,23 @@ api.MapPost("/stock/decrement", async (DecrementStockRequest req, EfProductServi
 .Produces(StatusCodes.Status409Conflict)
 .ProducesProblem(StatusCodes.Status404NotFound);
 
+// Validation d'un code promo pour l'aperçu panier : SANS consommation — la remise
+// est recalculée (et le code consommé) côté serveur à la création de la commande.
+api.MapPost("/promo-codes/validate", async (ValidatePromoRequest req, EfPromoService promos,
+       CancellationToken ct) =>
+{
+       if (string.IsNullOrWhiteSpace(req.Code) || req.Subtotal < 0)
+              return (IResult)Results.BadRequest(new { error = "Code promo invalide." });
+       var promo = await promos.FindUsableAsync(req.Code, ct);
+       return promo is null
+              ? Results.BadRequest(new { error = "Code promo invalide, expiré ou épuisé." })
+              : Results.Ok(new PromoValidationDto(promo.Code, promo.Kind.ToString(), promo.Value,
+                     ShopPulse.Domain.PromoDiscount.Compute(promo.Kind, promo.Value, req.Subtotal)));
+})
+.WithName("ValidatePromoCode")
+.Produces<PromoValidationDto>(StatusCodes.Status200OK)
+.Produces(StatusCodes.Status400BadRequest);
+
 // Création de commande : prix recalculés serveur, transaction tout-ou-rien, idempotence
 // par en-tête Idempotency-Key (rejeu → 200 avec la commande existante, jamais de doublon).
 api.MapPost("/orders", async (PlaceOrderRequest req, HttpContext ctx,
@@ -344,7 +362,7 @@ api.MapPost("/orders", async (PlaceOrderRequest req, HttpContext ctx,
        var userId = ctx.User.FindFirst("sub")?.Value;
        var placement = await placer.PlaceOrderAsync(new(req.Email, req.FullName, req.Address, req.PostalCode,
               [.. req.Lines.Select(l => new ShopPulse.Application.CartLineRequest(l.ProductId, l.Quantity))],
-              key, userId), ct);
+              key, userId, req.PromoCode), ct);
 
        switch (placement.Status)
        {
@@ -595,6 +613,33 @@ admin.MapDelete("/reviews/{id:int}", async (int id, EfReviewService reviews,
        return Results.NoContent();
 })
 .WithName("AdminDeleteReview")
+.Produces(StatusCodes.Status204NoContent)
+.ProducesProblem(StatusCodes.Status404NotFound);
+
+// Codes promo (docs/29) : liste, création (code normalisé en majuscules), activation.
+admin.MapGet("/promo-codes", async (EfPromoService promos, CancellationToken ct) =>
+       Results.Ok(await promos.GetAllAsync(ct)))
+.WithName("AdminGetPromoCodes")
+.Produces<IReadOnlyList<ShopPulse.Domain.PromoCode>>(StatusCodes.Status200OK);
+
+admin.MapPost("/promo-codes", async (CreatePromoCodeRequest req, EfPromoService promos,
+       CancellationToken ct) =>
+{
+       if (!Enum.TryParse<ShopPulse.Domain.PromoKind>(req.Kind, ignoreCase: true, out var kind))
+              return (IResult)Results.BadRequest(new { error = $"Type inconnu : « {req.Kind} » (Percent ou Amount)." });
+       var (promo, error) = await promos.CreateAsync(req.Code, kind, req.Value, req.ExpiresAt, req.MaxUses, ct);
+       return promo is null ? Results.BadRequest(new { error }) : Results.Ok(promo);
+})
+.WithName("AdminCreatePromoCode")
+.Produces<ShopPulse.Domain.PromoCode>(StatusCodes.Status200OK)
+.Produces(StatusCodes.Status400BadRequest);
+
+admin.MapPut("/promo-codes/{id:int}/active", async (int id, SetPromoActiveRequest req,
+       EfPromoService promos, CancellationToken ct) =>
+       await promos.SetActiveAsync(id, req.Active, ct)
+              ? Results.NoContent()
+              : Results.NotFound())
+.WithName("AdminSetPromoActive")
 .Produces(StatusCodes.Status204NoContent)
 .ProducesProblem(StatusCodes.Status404NotFound);
 

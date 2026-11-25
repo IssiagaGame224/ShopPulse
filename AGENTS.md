@@ -68,11 +68,19 @@ E2E + A11y sur pile compose ; health check NpgSql résolu paresseusement —
 et `CHECK` 1–5 en base, upsert par client, auteur = `preferred_username` du
 jeton, agrégat GROUP BY sans N+1 sur `Product.AverageRating/ReviewCount`,
 îlot `ProductReviewsSection` sur la fiche, étoiles `ProductCard`, modération
-`/admin/reviews` trilingue, E2E en collection séquentielle — `docs/28`).
+`/admin/reviews` trilingue, E2E en collection séquentielle — `docs/28`),
+**codes promo** (table `promo_codes` seedée `BIENVENUE10`/`FIXE5`, formule
+unique `PromoDiscount.Compute` partagée panier/validation/commande,
+consommation atomique en transaction — UPDATE conditionnel comme le stock,
+aperçu `/api/promo-codes/validate` sans consommation, instantanés
+`PromoCode`/`Discount` sur la commande, livraison offerte sur sous-total
+remisé, panier via `CartState.PromoCode`/`ICartGateway.PromoCode`, admin
+`/admin/promo-codes` — `docs/29`).
 
 Évolutions possibles (non faites) : alertes métier (stock bas, ancienneté du
 dernier dump), backend de traces persistant, sauvegarde externalisée (règle 3-2-1),
-i18n de la fiche produit publique, pagination des avis.
+i18n des pages publiques catalogue/panier, pagination des avis, cumul et
+restrictions de codes promo, CD (publication d'images).
 
 ## 2. Structure du dépôt
 
@@ -115,7 +123,7 @@ tests/
   ShopPulse.E2E/                 # Playwright : checkout, compte, admin, refresh
                                  # token (4 tests + utilitaire Screenshots)
   ShopPulse.A11y/                # axe-core : 5 pages × fr/en/ar (RTL inclus)
-docs/                    # Chapitres 00 à 27 (un par étape), adr/, manuscrit/, images/
+docs/                    # Chapitres 00 à 29 (un par étape), adr/, manuscrit/, images/
 Livre/                   # Chapitres illustrés du livre + PDF final
 docker/keycloak/         # realm-shoppulse.json importé au démarrage
 docker/postgres/         # backup.sh (sauvegardes périodiques, service « backup »)

@@ -224,4 +224,61 @@
   <data name="DeleteReview" xml:space="preserve">
     <value>Delete</value>
   </data>
+  <data name="AdminPromoTitle" xml:space="preserve">
+    <value>Promo codes</value>
+  </data>
+  <data name="NewPromoTitle" xml:space="preserve">
+    <value>New code</value>
+  </data>
+  <data name="PromoCodeLabel" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="PromoKindLabel" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="PromoValueLabel" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="MaxUsesLabel" xml:space="preserve">
+    <value>Max uses</value>
+  </data>
+  <data name="KindPercent" xml:space="preserve">
+    <value>Percentage</value>
+  </data>
+  <data name="KindAmount" xml:space="preserve">
+    <value>Fixed amount</value>
+  </data>
+  <data name="CreateAction" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="ColCode" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="ColKind" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="ColValue" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="ColUses" xml:space="preserve">
+    <value>Uses</value>
+  </data>
+  <data name="ColActive" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="PromoActive" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="PromoInactive" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
+  <data name="ActivateAction" xml:space="preserve">
+    <value>Activate</value>
+  </data>
+  <data name="DeactivateAction" xml:space="preserve">
+    <value>Deactivate</value>
+  </data>
+  <data name="NoPromo" xml:space="preserve">
+    <value>No promo codes.</value>
+  </data>
 </root>
