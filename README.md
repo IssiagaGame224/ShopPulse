@@ -154,7 +154,7 @@ Honnêteté technique — ce qui reste à faire est listé dans le code (`Limite
 commentaires) et notamment : chemin Stripe réel à valider avec de vraies clés de test,
 refresh token OIDC, pattern Outbox pour les emails, TVA/frais de port multi-pays,
 remboursements, i18n des pages compte/back-office, observabilité (health checks,
-logs structurés). Endpoints de gestion du stock à passer sous politique d'autorisation.
+logs structurés).
 
 ## Auteur
 

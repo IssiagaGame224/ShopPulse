@@ -186,6 +186,7 @@ api.MapPost("/stock", async (SetStockRequest req, EfProductService products, ISt
        return Results.NoContent();
 })
 .WithName("SetStock")
+.RequireAuthorization("CanManageStock")   // écriture réservée au back-office (P0)
 .Produces(StatusCodes.Status204NoContent)
 .ProducesValidationProblem();
 
@@ -206,6 +207,7 @@ api.MapPost("/stock/decrement", async (DecrementStockRequest req, EfProductServi
        return Results.NoContent();
 })
 .WithName("DecrementStock")
+.RequireAuthorization("CanManageStock")   // écriture réservée au back-office (P0)
 .Produces(StatusCodes.Status204NoContent)
 .Produces(StatusCodes.Status409Conflict)
 .ProducesProblem(StatusCodes.Status404NotFound);

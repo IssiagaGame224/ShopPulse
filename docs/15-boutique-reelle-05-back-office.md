@@ -38,7 +38,10 @@ SELECT setval(pg_get_serial_sequence('products', 'Id'),
 ## L'API d'administration
 
 Groupe `/api/admin` protégé par la politique **`CanManageStock`** (claim `role` du JWT,
-rôle realm Keycloak `stock-manager` — déjà propagé depuis la phase 4) :
+rôle realm Keycloak `stock-manager` — déjà propagé depuis la phase 4). Les endpoints
+d'écriture de stock historiques (`POST /api/stock`, `POST /api/stock/decrement`,
+hérités du module 6) sont passés sous la même politique — toute écriture du catalogue
+exige désormais le rôle, seules les lectures restent publiques :
 
 | Endpoint | Rôle |
 |---|---|
