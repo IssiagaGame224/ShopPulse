@@ -39,7 +39,7 @@ public class RefreshTokenE2eTests : IAsyncLifetime
               await page.FillAsync("#password", "client1234");
               await page.ClickAsync("#kc-login");
               await page.WaitForSelectorAsync("h1:has-text('Mon compte')",
-                     new PageWaitForSelectorOptions { Timeout = 15000 });
+                     new PageWaitForSelectorOptions { Timeout = 30000 });   // post-login : redirections + jeton + circuit
 
               // Le token expire…
               await page.WaitForTimeoutAsync(75_000);

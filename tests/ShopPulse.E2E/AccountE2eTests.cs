@@ -43,7 +43,7 @@ public class AccountE2eTests : IAsyncLifetime
               await page.ClickAsync("#kc-login");
 
               await page.WaitForSelectorAsync("h1:has-text('Mon compte')",
-                     new PageWaitForSelectorOptions { Timeout = 15000 });
+                     new PageWaitForSelectorOptions { Timeout = 30000 });   // post-login : redirections + jeton + circuit
               Assert.Contains("client", await page.TextContentAsync("dl"));
 
               // 2. Parcours d'achat connecté (navigation améliorée : même circuit).

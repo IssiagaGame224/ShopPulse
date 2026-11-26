@@ -55,7 +55,7 @@ public class AdminE2eTests : IAsyncLifetime
               await page.FillAsync("#password", "demo1234");
               await page.ClickAsync("#kc-login");
               await page.WaitForSelectorAsync("h1:has-text('Commandes')",
-                     new PageWaitForSelectorOptions { Timeout = 15000 });
+                     new PageWaitForSelectorOptions { Timeout = 30000 });   // post-login : redirections + jeton + circuit
 
               // La commande passée par les autres tests est « en attente » : on la paie.
               await page.WaitForSelectorAsync("button:has-text('Marquer payée')");

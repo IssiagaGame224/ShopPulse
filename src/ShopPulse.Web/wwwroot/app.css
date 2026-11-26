@@ -412,3 +412,24 @@ thead th { border-block-end: 2px solid var(--sp-color-border); }
         .checkout-summary { position: static; order: -1; }
         .shipping-form .form-grid { grid-template-columns: 1fr; }
 }
+
+/* Responsive mobile (docs/33) : tables défilantes + lignes de panier qui s'enroulent */
+.table-scroll { overflow-x: auto; max-width: 100%; }
+/* Région défilante focusable (tabindex=0) : anneau de focus visible obligatoire. */
+.table-scroll:focus-visible { outline: 2px solid var(--sp-color-primary); outline-offset: 2px; }
+
+@media (max-width: 720px) {
+        /* Lignes de panier : l'info produit passe sur sa ligne, le reste s'enroule */
+        .cart-lines li { flex-wrap: wrap; row-gap: var(--sp-space-2); }
+        .cart-line-info { flex-basis: calc(100% - 5rem); }
+        .line-total { min-width: 0; margin-inline-start: auto; }
+
+        /* Récapitulatif panier : pleine largeur */
+        .cart-summary { max-width: none; }
+
+        /* Pastilles d'étapes du tunnel : retour à la ligne propre */
+        .checkout-steps { flex-wrap: wrap; }
+
+        /* Le contenu garde une marge respirable sur petit écran */
+        .content { padding-inline: var(--sp-space-2); }
+}

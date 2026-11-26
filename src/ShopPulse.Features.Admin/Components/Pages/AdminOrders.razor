@@ -35,6 +35,7 @@ else if (_orders.Items.Count == 0)
 else
 {
        <p class="results-count">@string.Format(L["AdminOrdersCount"], _orders.Total, _page, _pageCount)</p>
+       <div class="table-scroll" role="region" aria-label="Tableau — défilement horizontal" tabindex="0">
        <table>
               <thead>
                      <tr>
@@ -69,6 +70,7 @@ else
                      }
               </tbody>
        </table>
+       </div>
        @if (_pageCount > 1)
        {
               <nav aria-label="@L["PaginationLabel"]" class="filters">
