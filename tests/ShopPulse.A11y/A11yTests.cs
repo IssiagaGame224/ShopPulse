@@ -26,6 +26,7 @@ public class A11yTests : IAsyncLifetime
        }
 
        [Theory]
+       [InlineData("/fr")]              // accueil : carrousel des gammes + CTA WhatsApp (docs/31)
        [InlineData("/fr/catalog")]
        [InlineData("/fr/product/1")]
        [InlineData("/fr/cart")]

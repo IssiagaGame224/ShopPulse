@@ -79,7 +79,11 @@ remisé, panier via `CartState.PromoCode`/`ICartGateway.PromoCode`, admin
 sur CI verte de `main`, images `ghcr.io/<owner>/shoppulse-{api,web}` taguées
 SHA + latest, cache gha, `GITHUB_TOKEN` suffit, GHCR exige des noms en
 minuscules ; consommation via `docker/compose.images-override.yml` —
-`docs/30`).
+`docs/30`), **accueil carrousel + WhatsApp** (`HeroSlider` îlot interactif :
+pause WCAG 2.2.2, pause au survol/focus, `prefers-reduced-motion` via module JS
+— jamais `eval`, bloqué par la CSP ; h1 masqué pour nommer la page ; cibles
+tactiles ≥ 24 px ; diapositives générées depuis le catalogue ; CTA WhatsApp =
+lien `wa.me` simple, numéro en configuration `Store:WhatsApp` — `docs/31`).
 
 Évolutions possibles (non faites) : alertes métier (stock bas, ancienneté du
 dernier dump), backend de traces persistant, sauvegarde externalisée (règle 3-2-1),
@@ -128,7 +132,7 @@ tests/
   ShopPulse.E2E/                 # Playwright : checkout, compte, admin, refresh
                                  # token (4 tests + utilitaire Screenshots)
   ShopPulse.A11y/                # axe-core : 5 pages × fr/en/ar (RTL inclus)
-docs/                    # Chapitres 00 à 30 (un par étape), adr/, manuscrit/, images/
+docs/                    # Chapitres 00 à 31 (un par étape), adr/, manuscrit/, images/
 Livre/                   # Chapitres illustrés du livre + PDF final
 docker/keycloak/         # realm-shoppulse.json importé au démarrage
 docker/postgres/         # backup.sh (sauvegardes périodiques, service « backup »)
