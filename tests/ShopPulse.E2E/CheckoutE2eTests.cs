@@ -78,6 +78,13 @@ public class CheckoutE2eTests : IAsyncLifetime
               await page.WaitForSelectorAsync("text=Commande confirmée",
                      new PageWaitForSelectorOptions { Timeout = 15000 });
 
+              // CTA WhatsApp de la confirmation (docs/31) : le message pré-rempli porte
+              // la référence de la commande — lien wa.me avec le numéro configuré.
+              var whatsappHref = await page.GetAttributeAsync(".summary-box a.whatsapp-link", "href");
+              Assert.NotNull(whatsappHref);
+              Assert.Contains("wa.me/212700222673", whatsappHref);
+              Assert.Contains("commande", whatsappHref);
+
               // Effets réels : stock décrémenté d'exactement 1 ; emails capturés par Mailpit
               // (envoyés de façon asynchrone par le worker Outbox → sondage jusqu'à 20 s).
               Assert.Equal(stockBefore - 1, await GetStockAsync());

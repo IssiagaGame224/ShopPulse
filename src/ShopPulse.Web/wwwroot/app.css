@@ -338,3 +338,9 @@ thead th { border-block-end: 2px solid var(--sp-color-border); }
         .whatsapp-cta { transition: none; }
         .whatsapp-cta:hover { transform: none; }
 }
+
+/* Lien WhatsApp contextuel (docs/31) : confirmation de commande, etc. */
+.whatsapp-link { display: inline-flex; align-items: center; gap: var(--sp-space-1);
+        color: #128c7e; font-weight: 600; text-decoration: none; }
+.whatsapp-link:hover { text-decoration: underline; }
+.whatsapp-link svg { flex-shrink: 0; }

@@ -39,6 +39,13 @@ else if (Machine.Step == CheckoutStep.Confirmed && _order is not null)
                      Un email de confirmation vient d'être envoyé à @_order.Email.
               </p>
               <p><a href="/account/orders">Suivre mes commandes</a></p>
+              @* Contact direct au sujet de CETTE commande : le message pré-rempli porte
+                 la référence et le montant — le client n'a rien à recopier (docs/31). *@
+              <p>
+                     <WhatsAppCta Message="@OrderWhatsAppMessage">
+                            Une question sur cette commande ? Écrivez-nous sur WhatsApp
+                     </WhatsAppCta>
+              </p>
        </div>
 }
 else if (Machine.Step == CheckoutStep.Failed)
@@ -239,6 +246,14 @@ else
               }
               return false;
        }
+
+       /// <summary>Message WhatsApp professionnel pré-rempli pour la commande confirmée :
+       /// référence et montant inclus — le client n'a rien à recopier (docs/31).</summary>
+       private string OrderWhatsAppMessage =>
+              _order is null ? "" :
+              $"Bonjour ShopPulse, je vous contacte au sujet de ma commande " +
+              $"n° {_order.Id.ToString("N")[..8].ToUpperInvariant()} d'un montant de " +
+              $"{_order.Total:0.00} {_order.Currency}. Merci de me tenir informé de son avancement.";
 
        public async ValueTask DisposeAsync()
        {

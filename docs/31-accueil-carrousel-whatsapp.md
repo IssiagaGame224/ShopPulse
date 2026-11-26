@@ -44,16 +44,23 @@ Le pattern WAI « carousel », appliqué :
 
 ## Le bouton WhatsApp : un lien, pas un script tiers
 
-`MainLayout` (toutes les pages) : pastille verte fixe en bas « fin de ligne »
-(`inset-inline-end` — côté gauche en arabe RTL), icône SVG inline, ouverture dans
-un nouvel onglet (`target="_blank" rel="noopener"`), `aria-label` explicite.
+`WhatsAppCta` (molécule `ShopPulse.UI`) : composant réutilisable — numéro lu dans la
+**configuration** (`Store:WhatsApp`, changeable sans rebuild), message pré-rempli
+fourni par l'appelant, simple lien `https://wa.me/…` (zéro JavaScript tiers, zéro
+iframe — la CSP stricte reste intacte), `target="_blank" rel="noopener"`,
+`aria-label` explicite. Deux usages :
 
-Décision délibérée : **un simple lien `https://wa.me/<numéro>?text=…`**, pas le
-widget script officiel de WhatsApp — zéro JavaScript tiers, zéro iframe, la CSP
-stricte reste intacte, et la page ne dépend d'aucun service externe pour s'afficher.
+- **pastille flottante** (toutes les pages, `MainLayout`) : contact général, verte,
+  fixe en bas « fin de ligne » (`inset-inline-end` — côté gauche en arabe RTL) ;
+- **confirmation de commande** (demande du propriétaire) : lien contextuel
+  « Une question sur cette commande ? » dont le message pré-rempli porte la
+  **référence et le montant** — « Bonjour ShopPulse, je vous contacte au sujet de
+  ma commande n° 1A2B3C4D d'un montant de 123.45 EUR. Merci de me tenir informé de
+  son avancement. » — le client n'a rien à recopier, le marchand identifie la
+  commande dès le premier message.
 
-Le numéro vit dans la **configuration** (`Store:WhatsApp` dans `appsettings.json`),
-pas dans le composant — le même déploiement peut changer de numéro sans rebuild.
+Décision délibérée : pas le widget script officiel WhatsApp — la page ne dépend
+d'aucun service externe pour s'afficher.
 
 ## Vérifications effectuées
 
@@ -61,6 +68,8 @@ pas dans le composant — le même déploiement peut changer de numéro sans reb
   prouve l'interactivité ET fige la rotation pour rendre la suite déterministe —,
   flèche → 2e diapositive, une seule visible, lien wa.me avec le bon numéro,
   `_blank`/`noopener`) ; axe **6/6** (l'accueil `/fr` rejoint la matrice) ;
+- le test E2E du tunnel vérifie le CTA WhatsApp de confirmation (lien wa.me,
+  numéro configuré, référence de commande dans le message) ;
 - vérification visuelle par capture : slide « Promotions en cours » (−20 % réel),
   contrôles, pastille WhatsApp.
 
