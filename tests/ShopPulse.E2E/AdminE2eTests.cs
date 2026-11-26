@@ -58,21 +58,19 @@ public class AdminE2eTests : IAsyncLifetime
                      new PageWaitForSelectorOptions { Timeout = 30000 });   // post-login : redirections + jeton + circuit
 
               // La commande passée par les autres tests est « en attente » : on la paie.
-              await page.WaitForSelectorAsync("button:has-text('Marquer payée')");
-              await page.ClickAsync("button:has-text('Marquer payée') >> nth=0");
               // Transition visible : la commande payée propose désormais « Marquer expédiée ».
-              await page.WaitForSelectorAsync("button:has-text('Marquer expédiée')",
-                     new PageWaitForSelectorOptions { Timeout = 10000 });
+              await page.WaitForSelectorAsync("button:has-text('Marquer payée')");
+              await E2eNavigation.ClickUntilAsync(page,
+                     "button:has-text('Marquer payée') >> nth=0", "button:has-text('Marquer expédiée')");
 
               // Édition produit : prix modifié puis relu dans la liste.
-              await page.ClickAsync("a[href='/admin/products'] >> nth=0");
-              await page.WaitForSelectorAsync("h1:has-text('Produits')");
-              await page.ClickAsync("table tbody tr:first-child a:has-text('Modifier')");
-              await page.WaitForSelectorAsync("#price");
+              await E2eNavigation.ClickUntilAsync(page,
+                     "a[href='/admin/products'] >> nth=0", "h1:has-text('Produits')");
+              await E2eNavigation.ClickUntilAsync(page,
+                     "table tbody tr:first-child a:has-text('Modifier')", "#price");
               await page.FillAsync("#price", "123.45");
-              await page.ClickAsync("button:has-text('Enregistrer')");
-              await page.WaitForSelectorAsync("h1:has-text('Produits')",
-                     new PageWaitForSelectorOptions { Timeout = 10000 });
+              await E2eNavigation.ClickUntilAsync(page,
+                     "button:has-text('Enregistrer')", "h1:has-text('Produits')");
               Assert.Contains("123,45", await page.TextContentAsync("table tbody tr:first-child"));
        }
 
