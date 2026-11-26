@@ -7,6 +7,9 @@
 @inject IOrderPlacer OrderPlacer
 @inject IOrderHistory OrderHistory
 @inject IPaymentClient Payments
+@inject IProductService Products
+@inject IStoreConfigProvider StoreConfigProvider
+@inject IPromoService Promos
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 
@@ -19,17 +22,13 @@
    configurées, un simulateur dev permet de tester toute la boucle. *@
 
 <ol class="checkout-steps" aria-label="Étapes de commande">
-       @foreach (var step in new[] { CheckoutStep.Cart, CheckoutStep.Shipping, CheckoutStep.Payment })
+       @foreach (var (step, label) in new[] { (CheckoutStep.Cart, "Panier"), (CheckoutStep.Shipping, "Livraison"), (CheckoutStep.Payment, "Paiement") })
        {
-              <li aria-current="@(Machine.Step == step ? "step" : null)">@step</li>
+              <li aria-current="@(Machine.Step == step ? "step" : null)">@label</li>
        }
 </ol>
 
-@if (Machine.Step == CheckoutStep.Shipping)
-{
-       <ShippingFormView Submitted="OnShippingSubmitted" />
-}
-else if (Machine.Step == CheckoutStep.Confirmed && _order is not null)
+@if (Machine.Step == CheckoutStep.Confirmed && _order is not null)
 {
        <div role="status" class="summary-box">
               <p>Commande confirmée. Merci !</p>
@@ -48,61 +47,132 @@ else if (Machine.Step == CheckoutStep.Confirmed && _order is not null)
               </p>
        </div>
 }
-else if (Machine.Step == CheckoutStep.Failed)
-{
-       <p role="alert">@(_error ?? "La commande a échoué.")</p>
-       <button disabled="@(!Machine.CanFire(CheckoutEvent.Retry) || _placing)"
-                     @onclick="() => Machine.Fire(CheckoutEvent.Retry)">Réessayer</button>
-}
-else if (Machine.Step == CheckoutStep.Payment)
-{
-       @if (_session is null)
-       {
-              <p>@Cart.Lines.Count article(s) — le montant exact est calculé côté serveur.</p>
-              <button disabled="@(!Machine.CanFire(CheckoutEvent.Back) || _placing)"
-                            @onclick="() => Machine.Fire(CheckoutEvent.Back)">Retour</button>
-              <button class="sp-btn sp-btn--primary" disabled="@_placing" @onclick="PayAsync">
-                     @(_placing ? "Commande en cours…" : "Payer")
-              </button>
-       }
-       else if (!_session.Live)
-       {
-              @* Simulateur dev (aucune clé Stripe configurée) *@
-              <div class="summary-box">
-                     <p><strong>Mode démo</strong> — aucune clé Stripe configurée :
-                            le paiement est simulé côté serveur.</p>
-                     <p>Total à payer : <strong>@_order!.Total.ToString("0.00") @_order.Currency</strong></p>
-                     <button class="sp-btn sp-btn--primary" disabled="@_placing" @onclick="FakePayAsync">
-                            @( _placing ? "Paiement en cours…" : "Simuler le paiement (démo)")
-                     </button>
-              </div>
-       }
-       else
-       {
-              @* Stripe : le Payment Element est monté par JS interop *@
-              <div class="summary-box">
-                     <p>Total à payer : <strong>@_order!.Total.ToString("0.00") @_order.Currency</strong></p>
-                     <div id="stripe-payment-element"></div>
-                     @if (_paymentError is not null)
-                     {
-                            <p role="alert">@_paymentError</p>
-                     }
-                     <button class="sp-btn sp-btn--primary" disabled="@(_placing || !_elementMounted)"
-                                   @onclick="ConfirmStripeAsync">
-                            @(_placing ? "Paiement en cours…" : "Confirmer le paiement")
-                     </button>
-              </div>
-       }
-       @if (_error is not null && _session is null)
-       {
-              <p role="alert">@_error</p>
-       }
-}
 else
 {
-       <p>@Cart.Lines.Count article(s) dans votre panier.</p>
-       <button disabled="@(!Machine.CanFire(CheckoutEvent.Next) || Cart.Lines.Count == 0)"
-                     @onclick="() => Machine.Fire(CheckoutEvent.Next)">Suivant</button>
+       @* Mise en page « boutique pro » (référence joutech.ma, docs/32) : étapes
+          numérotées à gauche, récapitulatif « Votre commande » collant à droite —
+          valeurs serveur dès que la commande existe, aperçu panier avant. *@
+       <div class="checkout-layout">
+              <div class="checkout-main">
+                     @if (Machine.Step == CheckoutStep.Shipping)
+                     {
+                            <section class="checkout-section" aria-labelledby="shipping-title">
+                                   <h2 id="shipping-title"><span class="step-number" aria-hidden="true">1</span> Informations de livraison</h2>
+                                   <ShippingFormView Submitted="OnShippingSubmitted" />
+                            </section>
+                     }
+                     else if (Machine.Step == CheckoutStep.Failed)
+                     {
+                            <section class="checkout-section">
+                                   <p role="alert">@(_error ?? "La commande a échoué.")</p>
+                                   <button disabled="@(!Machine.CanFire(CheckoutEvent.Retry) || _placing)"
+                                           @onclick="() => Machine.Fire(CheckoutEvent.Retry)">Réessayer</button>
+                            </section>
+                     }
+                     else if (Machine.Step == CheckoutStep.Payment)
+                     {
+                            <section class="checkout-section" aria-labelledby="payment-title">
+                                   <h2 id="payment-title"><span class="step-number" aria-hidden="true">2</span> Paiement</h2>
+                                   @if (_session is null)
+                                   {
+                                          <p>@Cart.Lines.Count article(s) — le montant exact est calculé côté serveur.</p>
+                                          <div class="checkout-actions">
+                                                 <button disabled="@(!Machine.CanFire(CheckoutEvent.Back) || _placing)"
+                                                         @onclick="() => Machine.Fire(CheckoutEvent.Back)">Retour</button>
+                                                 <button class="sp-btn sp-btn--primary" disabled="@_placing" @onclick="PayAsync">
+                                                        @(_placing ? "Commande en cours…" : "Payer")
+                                                 </button>
+                                          </div>
+                                   }
+                                   else if (!_session.Live)
+                                   {
+                                          @* Simulateur dev (aucune clé Stripe configurée) *@
+                                          <div class="summary-box">
+                                                 <p><strong>Mode démo</strong> — aucune clé Stripe configurée :
+                                                        le paiement est simulé côté serveur.</p>
+                                                 <p>Total à payer : <strong>@_order!.Total.ToString("0.00") @_order.Currency</strong></p>
+                                                 <button class="sp-btn sp-btn--primary" disabled="@_placing" @onclick="FakePayAsync">
+                                                        @( _placing ? "Paiement en cours…" : "Simuler le paiement (démo)")
+                                                 </button>
+                                          </div>
+                                   }
+                                   else
+                                   {
+                                          @* Stripe : le Payment Element est monté par JS interop *@
+                                          <div class="summary-box">
+                                                 <p>Total à payer : <strong>@_order!.Total.ToString("0.00") @_order.Currency</strong></p>
+                                                 <div id="stripe-payment-element"></div>
+                                                 @if (_paymentError is not null)
+                                                 {
+                                                        <p role="alert">@_paymentError</p>
+                                                 }
+                                                 <button class="sp-btn sp-btn--primary" disabled="@(_placing || !_elementMounted)"
+                                                         @onclick="ConfirmStripeAsync">
+                                                        @(_placing ? "Paiement en cours…" : "Confirmer le paiement")
+                                                 </button>
+                                          </div>
+                                   }
+                                   @if (_error is not null && _session is null)
+                                   {
+                                          <p role="alert">@_error</p>
+                                   }
+                            </section>
+                     }
+                     else
+                     {
+                            <section class="checkout-section" aria-labelledby="cart-review-title">
+                                   <h2 id="cart-review-title">Votre panier</h2>
+                                   <p>@Cart.Lines.Count article(s) dans votre panier — vérifiez le récapitulatif avant de continuer.</p>
+                                   <button class="sp-btn sp-btn--primary"
+                                           disabled="@(!Machine.CanFire(CheckoutEvent.Next) || Cart.Lines.Count == 0)"
+                                           @onclick="() => Machine.Fire(CheckoutEvent.Next)">Suivant</button>
+                            </section>
+                     }
+              </div>
+
+              <aside class="checkout-summary" aria-labelledby="order-summary-title">
+                     <h2 id="order-summary-title">Votre commande</h2>
+                     <ul class="checkout-summary-lines">
+                            @foreach (var line in SummaryLines)
+                            {
+                                   <li @key="line.ProductId">
+                                          @if (_products.TryGetValue(line.ProductId, out var product))
+                                          {
+                                                 <img src="@product.ImageUrl" alt="" width="48" height="48" loading="lazy" decoding="async" />
+                                          }
+                                          <span class="summary-line-name">@line.Name <span class="summary-line-qty">× @line.Quantity</span></span>
+                                          <span class="summary-line-total">@line.LineTotal.ToString("C")</span>
+                                   </li>
+                            }
+                     </ul>
+                     <dl>
+                            <div>
+                                   <dt>Sous-total</dt>
+                                   <dd>@SummarySubtotal.ToString("C")</dd>
+                            </div>
+                            @if (SummaryDiscount > 0)
+                            {
+                                   <div class="discount">
+                                          <dt>Remise@(SummaryPromoCode is { } code ? $" ({code})" : "")</dt>
+                                          <dd>−@SummaryDiscount.ToString("C")</dd>
+                                   </div>
+                            }
+                            <div>
+                                   <dt>Livraison</dt>
+                                   <dd>@(SummaryShipping > 0 ? SummaryShipping.ToString("C") : "Offerte")</dd>
+                            </div>
+                            <div class="total">
+                                   <dt>Total</dt>
+                                   <dd>@SummaryTotal.ToString("C")</dd>
+                            </div>
+                            <div>
+                                   <dt>dont TVA @(((_order?.TaxRate ?? _store.VatRate) * 100).ToString("0")) %</dt>
+                                   <dd>@SummaryTax.ToString("C")</dd>
+                            </div>
+                     </dl>
+                     <p class="checkout-secure">Prix recalculés côté serveur — paiement sécurisé.</p>
+              </aside>
+       </div>
 }
 
 @code {
@@ -115,6 +185,9 @@ else
        private bool _placing;
        private bool _elementMounted;
        private IJSObjectReference? _stripeModule;
+       private Dictionary<int, Product> _products = new();
+       private StoreConfig _store = new(5.90m, 60m, 0.20m, "EUR");
+       private PromoPreview? _promo;
 
        protected override void OnInitialized()
        {
@@ -124,6 +197,41 @@ else
               // (bouton « Suivant » désactivé pour toujours) — course révélée en conteneur.
               if (Cart is IObservableState cartState) Watch(cartState);
        }
+
+       protected override async Task OnInitializedAsync()
+       {
+              // Récapitulatif latéral (docs/32) : noms/images/prix pour l'aperçu panier,
+              // MÊME règle de livraison/TVA que le serveur, aperçu du code promo du panier.
+              var all = await Products.GetAllAsync();
+              _products = all.ToDictionary(p => p.Id);
+              _store = await StoreConfigProvider.GetAsync();
+              if (Cart.PromoCode is { } code)
+                     _promo = await Promos.ValidateAsync(code, CartSubtotal);
+       }
+
+       // ---- Récapitulatif « Votre commande » : la commande persistée fait foi dès
+       // qu'elle existe (étapes paiement/confirmation) ; avant, aperçu recalculé
+       // avec les mêmes règles Domain/config que le serveur. ----
+
+       private record SummaryLine(int ProductId, string Name, int Quantity, decimal LineTotal);
+
+       private IReadOnlyList<SummaryLine> SummaryLines =>
+              _order is not null
+                     ? [.. _order.Lines.Select(l => new SummaryLine(l.ProductId, l.ProductName, l.Quantity, l.LineTotal))]
+                     : [.. Cart.Lines.Select(l => new SummaryLine(l.ProductId,
+                            _products.TryGetValue(l.ProductId, out var p) ? p.Name : $"Produit {l.ProductId}",
+                            l.Quantity,
+                            _products.TryGetValue(l.ProductId, out var p2) ? p2.Price * l.Quantity : 0))];
+
+       private decimal CartSubtotal => Cart.Lines.Sum(l =>
+              _products.TryGetValue(l.ProductId, out var p) ? p.Price * l.Quantity : 0);
+
+       private decimal SummarySubtotal => _order?.Subtotal ?? CartSubtotal;
+       private decimal SummaryDiscount => _order?.Discount ?? _promo?.DiscountFor(SummarySubtotal) ?? 0m;
+       private string? SummaryPromoCode => _order?.PromoCode ?? Cart.PromoCode;
+       private decimal SummaryShipping => _order?.ShippingCost ?? _store.ShippingFor(SummarySubtotal - SummaryDiscount);
+       private decimal SummaryTotal => _order?.Total ?? SummarySubtotal - SummaryDiscount + SummaryShipping;
+       private decimal SummaryTax => _order?.TaxAmount ?? _store.VatIncludedIn(SummaryTotal);
 
        private void OnShippingSubmitted(ShippingForm form)
        {

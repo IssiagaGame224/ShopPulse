@@ -344,3 +344,71 @@ thead th { border-block-end: 2px solid var(--sp-color-border); }
         color: #128c7e; font-weight: 600; text-decoration: none; }
 .whatsapp-link:hover { text-decoration: underline; }
 .whatsapp-link svg { flex-shrink: 0; }
+
+/* Tunnel de commande « boutique pro » (docs/32) : étapes numérotées + récapitulatif latéral */
+.checkout-steps { display: flex; gap: var(--sp-space-2); list-style: none; padding: 0;
+        margin-block-end: var(--sp-space-4); counter-reset: step; }
+.checkout-steps li { counter-increment: step; display: flex; align-items: center;
+        gap: var(--sp-space-1); padding: var(--sp-space-1) var(--sp-space-3);
+        border: 1px solid var(--sp-color-border); border-radius: 999px;
+        background: var(--sp-color-surface); color: var(--sp-color-text); }
+.checkout-steps li::before { content: counter(step); display: inline-flex;
+        align-items: center; justify-content: center; width: 1.4rem; height: 1.4rem;
+        border-radius: 50%; border: 1px solid var(--sp-color-border); font-size: .85rem; }
+.checkout-steps li[aria-current="step"] { border-color: var(--sp-color-primary);
+        color: var(--sp-color-primary); font-weight: 600; }
+.checkout-steps li[aria-current="step"]::before { background: var(--sp-color-primary);
+        border-color: var(--sp-color-primary); color: #fff; }
+
+.checkout-layout { display: grid; grid-template-columns: minmax(0, 1fr) 22rem;
+        gap: var(--sp-space-4); align-items: start; }
+.checkout-section { border: 1px solid var(--sp-color-border); border-radius: 12px;
+        background: var(--sp-color-surface); padding: var(--sp-space-4);
+        box-shadow: var(--sp-shadow); }
+.checkout-section h2 { display: flex; align-items: center; gap: var(--sp-space-2);
+        font-size: 1.25rem; margin-block-end: var(--sp-space-3); }
+.step-number { display: inline-flex; align-items: center; justify-content: center;
+        width: 1.8rem; height: 1.8rem; border-radius: 50%; flex-shrink: 0;
+        background: var(--sp-color-primary); color: #fff; font-size: 1rem; }
+.checkout-actions { display: flex; gap: var(--sp-space-2); margin-block-start: var(--sp-space-3); }
+
+.checkout-summary { position: sticky; inset-block-start: var(--sp-space-3);
+        border: 1px solid var(--sp-color-border); border-radius: 12px;
+        background: var(--sp-color-surface); padding: var(--sp-space-3);
+        box-shadow: var(--sp-shadow); }
+.checkout-summary h2 { font-size: 1.1rem; margin-block-end: var(--sp-space-2); }
+.checkout-summary-lines { list-style: none; padding: 0; margin-block-end: var(--sp-space-2); }
+.checkout-summary-lines li { display: flex; align-items: center; gap: var(--sp-space-2);
+        padding-block: var(--sp-space-2); border-block-end: 1px solid var(--sp-color-border); }
+.checkout-summary-lines img { border-radius: 6px; flex-shrink: 0; }
+.summary-line-name { flex: 1; font-size: .95rem; }
+.summary-line-qty { color: var(--sp-color-text); opacity: .7; white-space: nowrap; }
+.summary-line-total { font-weight: 600; white-space: nowrap; }
+.checkout-summary dl { margin: 0; }
+.checkout-summary dl > div { display: flex; justify-content: space-between;
+        padding-block: var(--sp-space-1); }
+.checkout-summary .total { font-size: 1.15rem; font-weight: 700;
+        border-block-start: 2px solid var(--sp-color-border); margin-block-start: var(--sp-space-1);
+        padding-block-start: var(--sp-space-2); }
+.checkout-summary .discount dd, .checkout-summary .discount dt { color: var(--sp-color-primary); }
+.checkout-secure { font-size: .85rem; opacity: .75; margin-block-start: var(--sp-space-2); }
+
+/* Formulaire de livraison en grille (façon joutech) */
+.shipping-form .form-grid { display: grid; grid-template-columns: 1fr 1fr;
+        gap: var(--sp-space-3); margin-block-end: var(--sp-space-3); }
+.shipping-form .form-field { display: flex; flex-direction: column; gap: var(--sp-space-1); }
+.shipping-form .form-field--wide { grid-column: 1 / -1; }
+.shipping-form label { font-weight: 600; font-size: .95rem; }
+.shipping-form input { padding: var(--sp-space-2) var(--sp-space-3);
+        border: 1px solid var(--sp-color-border); border-radius: 8px;
+        background: var(--sp-color-surface); color: var(--sp-color-text);
+        font: inherit; min-height: 2.6rem; }
+.shipping-form input:focus-visible { outline: 2px solid var(--sp-color-primary); outline-offset: 1px; }
+.shipping-form .validation-message { color: #b3261e; font-size: .85rem; }
+
+/* Empilement mobile du tunnel (le reste du responsive est traité en docs/33) */
+@media (max-width: 900px) {
+        .checkout-layout { grid-template-columns: 1fr; }
+        .checkout-summary { position: static; order: -1; }
+        .shipping-form .form-grid { grid-template-columns: 1fr; }
+}

@@ -1,26 +1,36 @@
 @implements IDisposable
 
-<EditForm EditContext="_ctx" OnValidSubmit="SubmitAsync" FormName="shipping">
+<EditForm EditContext="_ctx" OnValidSubmit="SubmitAsync" FormName="shipping" class="shipping-form">
        <DataAnnotationsValidator />
        <ValidationSummary />
 
-       <label for="fn">Nom complet</label>
-       <InputText id="fn" @bind-Value="_model.FullName" autocomplete="name" />
-       <ValidationMessage For="() => _model.FullName" />
+       <div class="form-grid">
+              <div class="form-field">
+                     <label for="fn">Nom complet</label>
+                     <InputText id="fn" @bind-Value="_model.FullName" autocomplete="name" />
+                     <ValidationMessage For="() => _model.FullName" />
+              </div>
 
-       <label for="em">E-mail</label>
-       <InputText id="em" type="email" @bind-Value="_model.Email" autocomplete="email" />
-       <ValidationMessage For="() => _model.Email" />
+              <div class="form-field">
+                     <label for="em">E-mail</label>
+                     <InputText id="em" type="email" @bind-Value="_model.Email" autocomplete="email" />
+                     <ValidationMessage For="() => _model.Email" />
+              </div>
 
-       <label for="ad">Adresse</label>
-       <InputText id="ad" @bind-Value="_model.Address" autocomplete="street-address" />
-       <ValidationMessage For="() => _model.Address" />
+              <div class="form-field form-field--wide">
+                     <label for="ad">Adresse</label>
+                     <InputText id="ad" @bind-Value="_model.Address" autocomplete="street-address" />
+                     <ValidationMessage For="() => _model.Address" />
+              </div>
 
-       <label for="pc">Code postal</label>
-       <InputText id="pc" @bind-Value="_model.PostalCode" autocomplete="postal-code" />
-       <ValidationMessage For="() => _model.PostalCode" />
+              <div class="form-field">
+                     <label for="pc">Code postal</label>
+                     <InputText id="pc" @bind-Value="_model.PostalCode" autocomplete="postal-code" />
+                     <ValidationMessage For="() => _model.PostalCode" />
+              </div>
+       </div>
 
-       <button type="submit" disabled="@_submitting">@(_submitting ? "Envoi..." : "Continuer")</button>
+       <button type="submit" class="sp-btn sp-btn--primary" disabled="@_submitting">@(_submitting ? "Envoi..." : "Continuer")</button>
        @if (_ctx.IsModified()) { <small>Modifications non enregistrées</small> }
 </EditForm>
 

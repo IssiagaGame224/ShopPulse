@@ -83,7 +83,12 @@ minuscules ; consommation via `docker/compose.images-override.yml` —
 pause WCAG 2.2.2, pause au survol/focus, `prefers-reduced-motion` via module JS
 — jamais `eval`, bloqué par la CSP ; h1 masqué pour nommer la page ; cibles
 tactiles ≥ 24 px ; diapositives générées depuis le catalogue ; CTA WhatsApp =
-lien `wa.me` simple, numéro en configuration `Store:WhatsApp` — `docs/31`).
+lien `wa.me` simple, numéro en configuration `Store:WhatsApp` ; CTA contextuel
+sur la confirmation de commande — référence + montant dans le message pré-rempli,
+molécule `WhatsAppCta` — `docs/31`), **tunnel de commande pro** (layout 2 colonnes
+façon joutech : étapes numérotées, carte « Votre commande » sticky — aperçu aux
+règles serveur avant la commande, valeurs persistées après ; sélecteurs E2E
+préservés ; piège Razor `@(x).ToString()` = texte littéral — `docs/32`).
 
 Évolutions possibles (non faites) : alertes métier (stock bas, ancienneté du
 dernier dump), backend de traces persistant, sauvegarde externalisée (règle 3-2-1),
@@ -132,7 +137,7 @@ tests/
   ShopPulse.E2E/                 # Playwright : checkout, compte, admin, refresh
                                  # token (4 tests + utilitaire Screenshots)
   ShopPulse.A11y/                # axe-core : 5 pages × fr/en/ar (RTL inclus)
-docs/                    # Chapitres 00 à 31 (un par étape), adr/, manuscrit/, images/
+docs/                    # Chapitres 00 à 32 (un par étape), adr/, manuscrit/, images/
 Livre/                   # Chapitres illustrés du livre + PDF final
 docker/keycloak/         # realm-shoppulse.json importé au démarrage
 docker/postgres/         # backup.sh (sauvegardes périodiques, service « backup »)
