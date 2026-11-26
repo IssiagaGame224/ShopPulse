@@ -1,16 +1,30 @@
 @page "/"
 @attribute [StreamRendering]
+@using ShopPulse.Web.Components.Shared
 @inject IProductService Products
 @inject QueryClient Query
 
 <PageTitle>ShopPulse — Boutique high-tech</PageTitle>
 
-<section class="hero">
-       <h1>Le meilleur de la high-tech, livré chez vous</h1>
-       <p>Claviers, écrans et audio sélectionnés : prix nets, stock en temps réel,
-          expédition soignée. Boutique multilingue, accessible et sécurisée.</p>
-       <a class="sp-btn" href="/catalog">Découvrir le catalogue</a>
-</section>
+@* Un h1 par page, même avec un carrousel en tête : le titre des diapositives reste
+   en h2 — le h1 (masqué visuellement) nomme la page pour les lecteurs d'écran. *@
+<h1 class="visually-hidden">ShopPulse — Boutique high-tech : claviers, écrans et audio</h1>
+
+@* Carrousel des gammes (style joutech.ma) : îlot interactif — le prerender affiche
+   la première diapositive, la rotation démarre à la connexion du circuit. *@
+@if (_slides.Count > 0)
+{
+       <HeroSlider Slides="_slides" @rendermode="InteractiveServer" />
+}
+else
+{
+       <section class="hero">
+              <h1>Le meilleur de la high-tech, livré chez vous</h1>
+              <p>Claviers, écrans et audio sélectionnés : prix nets, stock en temps réel,
+                 expédition soignée. Boutique multilingue, accessible et sécurisée.</p>
+              <a class="sp-btn" href="/catalog">Découvrir le catalogue</a>
+       </section>
+}
 
 @* Bandeau de réassurance (style boutiques pro) *@
 <ul class="features-strip">
@@ -71,6 +85,7 @@
        private IReadOnlyList<string> _categories = [];
        private IReadOnlyList<Product> _promos = [];
        private IReadOnlyList<Product> _new = [];
+       private IReadOnlyList<HeroSlider.HeroSlide> _slides = [];
 
        protected override async Task OnInitializedAsync()
        {
@@ -82,5 +97,26 @@
 
               _promos = [.. all.Where(p => p.IsOnSale && p.Stock > 0).Take(4)];
               _new = [.. all.OrderByDescending(p => p.Id).Take(4)];
+
+              // Diapositives du carrousel : une par gamme (image d'un produit réel de la
+              // catégorie), précédée d'une diapositive « Promotions » s'il y en a.
+              var slides = new List<HeroSlider.HeroSlide>();
+              if (_promos.Count > 0)
+              {
+                     slides.Add(new("Promotions en cours",
+                            $"Jusqu'à −{(int)Math.Round(_promos.Max(p => 1 - p.Price / p.OldPrice!.Value) * 100)} % sur une sélection high-tech",
+                            _promos[0].ImageUrl, _promos[0].Name,
+                            "Voir les promos", "/catalog?sort=promo"));
+              }
+              foreach (var category in _categories.Take(3))
+              {
+                     var showcase = all.FirstOrDefault(p => p.Category == category && p.Stock > 0);
+                     if (showcase is null) continue;
+                     slides.Add(new($"La gamme {category}",
+                            "Sélection ShopPulse : prix nets, stock en temps réel, garantie 2 ans",
+                            showcase.ImageUrl, showcase.Name,
+                            "Découvrir la gamme", $"/catalog?category={Uri.EscapeDataString(category)}"));
+              }
+              _slides = slides;
        }
 }

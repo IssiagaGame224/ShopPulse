@@ -1,0 +1,130 @@
+@* Carrousel de « nouvelles gammes » (style joutech.ma) — îlot interactif.
+   Accessibilité (pattern WAI carousel) :
+   — rotation automatique MAIS bouton pause/reprendre visible (WCAG 2.2.2 : tout
+     contenu animé doit pouvoir être arrêté) ;
+   — pause automatique au survol et au focus clavier ;
+   — prefers-reduced-motion : pas de rotation ni de transition (lu via JS au montage) ;
+   — diapositives inactives en visibility:hidden (hors tabulation et lecteur d'écran) ;
+   — le prerender affiche la première diapositive : le HTML statique suffit sans circuit. *@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<section class="hero-slider" aria-roledescription="carousel" aria-label="Nouvelles gammes"
+         @onmouseenter="() => _hovering = true" @onmouseleave="() => _hovering = false"
+         @onfocusin="() => _focused = true" @onfocusout="() => _focused = false">
+       <div class="hero-slides">
+              @for (var i = 0; i < Slides.Count; i++)
+              {
+                     var index = i;
+                     var slide = Slides[index];
+                     <div class="hero-slide @(index == _current ? "is-active" : "")"
+                          role="group" aria-roledescription="diapositive"
+                          aria-label="@($"Diapositive {index + 1} sur {Slides.Count}")"
+                          aria-hidden="@(index == _current ? "false" : "true")">
+                            <img src="@slide.ImageUrl" alt="@slide.ImageAlt" width="960" height="480"
+                                 loading="@(index == 0 ? "eager" : "lazy")"
+                                 fetchpriority="@(index == 0 ? "high" : "auto")" decoding="async" />
+                            <div class="hero-slide-caption">
+                                   <h2>@slide.Title</h2>
+                                   <p>@slide.Tagline</p>
+                                   <a class="sp-btn sp-btn--primary" href="@slide.CtaHref">@slide.CtaText</a>
+                            </div>
+                     </div>
+              }
+       </div>
+
+       <div class="hero-controls">
+              <button type="button" class="hero-arrow" @onclick="() => Go(_current - 1)"
+                      aria-label="Diapositive précédente">‹</button>
+              <div class="hero-dots" role="tablist" aria-label="Choisir une diapositive">
+                     @for (var i = 0; i < Slides.Count; i++)
+                     {
+                            var index = i;
+                            <button type="button" role="tab"
+                                    class="hero-dot @(index == _current ? "is-active" : "")"
+                                    aria-selected="@(index == _current ? "true" : "false")"
+                                    aria-label="@($"Aller à la diapositive {index + 1}")"
+                                    @onclick="() => Go(index)"></button>
+                     }
+              </div>
+              <button type="button" class="hero-arrow" @onclick="() => Go(_current + 1)"
+                      aria-label="Diapositive suivante">›</button>
+              <button type="button" class="hero-pause" @onclick="TogglePause"
+                      aria-pressed="@(_paused ? "true" : "false")">
+                     <span aria-hidden="true">@(_paused ? "▶" : "⏸")</span>
+                     <span class="visually-hidden">@(_paused ? "Reprendre la rotation automatique" : "Mettre la rotation en pause")</span>
+              </button>
+       </div>
+</section>
+
+@code {
+       [Parameter, EditorRequired] public IReadOnlyList<HeroSlide> Slides { get; set; } = [];
+
+       private static readonly TimeSpan Interval = TimeSpan.FromSeconds(5);
+
+       private int _current;
+       private bool _paused;        // choix explicite de l'utilisateur (bouton)
+       private bool _hovering;      // pause douce : survol
+       private bool _focused;       // pause douce : focus clavier dans le carrousel
+       private bool _reducedMotion; // préférence système : jamais de rotation
+       private CancellationTokenSource? _rotation;
+       private Task? _rotationTask;
+       private IJSObjectReference? _motionModule;
+
+       protected override async Task OnAfterRenderAsync(bool firstRender)
+       {
+              if (!firstRender || Slides.Count < 2) return;
+
+              // La préférence système se lit en JS, après le rendu (jamais au prerender) —
+              // via un module, pas eval : la CSP bloque eval (pas d'unsafe-eval).
+              try
+              {
+                     _motionModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                            "import", "./js/motion.js");
+                     _reducedMotion = await _motionModule.InvokeAsync<bool>("prefersReducedMotion");
+              }
+              catch (JSException) { _reducedMotion = false; }
+
+              if (_reducedMotion) return;   // l'utilisateur a demandé moins d'animation : pas de rotation
+
+              _rotation = new CancellationTokenSource();
+              _rotationTask = RotateAsync(_rotation.Token);
+       }
+
+       private async Task RotateAsync(CancellationToken ct)
+       {
+              using var timer = new PeriodicTimer(Interval);
+              try
+              {
+                     while (await timer.WaitForNextTickAsync(ct))
+                     {
+                            if (_paused || _hovering || _focused) continue;
+                            await InvokeAsync(() => { Go(_current + 1); StateHasChanged(); });
+                     }
+              }
+              catch (OperationCanceledException) { /* arrêt normal du composant */ }
+       }
+
+       private void Go(int index) =>
+              _current = (index % Slides.Count + Slides.Count) % Slides.Count;   // boucle dans les deux sens
+
+       private void TogglePause() => _paused = !_paused;
+
+       public async ValueTask DisposeAsync()
+       {
+              if (_rotation is not null)
+              {
+                     await _rotation.CancelAsync();
+                     if (_rotationTask is not null)
+                            try { await _rotationTask; } catch (OperationCanceledException) { }
+                     _rotation.Dispose();
+              }
+              if (_motionModule is not null)
+                     try { await _motionModule.DisposeAsync(); } catch (JSDisconnectedException) { }
+       }
+
+       /// <summary>Diapositive du carrousel d'accueil (présentation pure).</summary>
+       public sealed record HeroSlide(
+              string Title, string Tagline, string ImageUrl, string ImageAlt,
+              string CtaText, string CtaHref);
+}
