@@ -43,16 +43,14 @@ public class AccountE2eTests : IAsyncLifetime
               await page.ClickAsync("#kc-login");
 
               await page.WaitForSelectorAsync("h1:has-text('Mon compte')",
-                     new PageWaitForSelectorOptions { Timeout = 15000 });
+                     new PageWaitForSelectorOptions { Timeout = 30000 });   // post-login : redirections + jeton + circuit
               Assert.Contains("client", await page.TextContentAsync("dl"));
 
               // 2. Parcours d'achat connecté (navigation améliorée : même circuit).
               // Produit choisi EN STOCK au moment du test (les runs répétés vident le stock).
               var productId = await TestCatalog.InStockProductIdAsync(_http, ApiUrl, skip: 1);
-              await page.ClickAsync("a[href='/catalog']");
-              await page.WaitForSelectorAsync($"a[href='/product/{productId}']");
-              await page.ClickAsync($"a[href='/product/{productId}']");
-              await page.WaitForSelectorAsync("button.sp-btn--primary");
+              await E2eNavigation.ClickUntilAsync(page, "a[href='/catalog']", $"a[href='/product/{productId}']");
+              await E2eNavigation.ClickUntilAsync(page, $"a[href='/product/{productId}']", "button.sp-btn--primary");
               // Clic pris en compte seulement une fois le circuit connecté : badge à 1, avec retry.
               for (var attempt = 0; attempt < 4; attempt++)
               {
@@ -65,49 +63,28 @@ public class AccountE2eTests : IAsyncLifetime
                      }
                      catch (TimeoutException) when (attempt < 3) { }
               }
-              await page.ClickAsync("a[href='/cart']");
-              await page.WaitForSelectorAsync("h1");
-              await page.ClickAsync("nav a[href='checkout']");   // lien du menu (le panier a aussi un CTA)
-              await page.WaitForSelectorAsync("text=article(s)");
-              await page.ClickAsync("button:has-text('Suivant')");
+              await E2eNavigation.ClickUntilAsync(page, "a[href='/cart']", "h1");
+              // lien du menu (le panier a aussi un CTA)
+              await E2eNavigation.ClickUntilAsync(page, "nav a[href='checkout']", "text=article(s)");
+              await E2eNavigation.ClickUntilAsync(page, "button:has-text('Suivant')", "#fn");
               await page.FillAsync("#fn", "Camille Cliente");
               await page.FillAsync("#em", "client@shoppulse.local");
               await page.FillAsync("#ad", "3 rue du Compte");
               await page.FillAsync("#pc", "69002");
-              await page.ClickAsync("button:has-text('Continuer')");
-              await page.ClickAsync("button:has-text('Payer')");
+              await E2eNavigation.ClickUntilAsync(page,
+                     "button:has-text('Continuer')", "button:has-text('Payer')");
               // Session simulateur (dev sans clés Stripe) : confirmation dédiée.
-              await page.ClickAsync("button:has-text('Simuler le paiement')",
-                     new PageClickOptions { Timeout = 15000 });
-              await page.WaitForSelectorAsync("text=Commande confirmée",
-                     new PageWaitForSelectorOptions { Timeout = 15000 });
+              // « Payer » est idempotent (clé stable) : les reprises sont sûres.
+              await E2eNavigation.ClickUntilAsync(page,
+                     "button:has-text('Payer')", "button:has-text('Simuler le paiement')",
+                     attempts: 3, timeoutMs: 15000);
+              await E2eNavigation.ClickUntilAsync(page,
+                     "button:has-text('Simuler le paiement')", "text=Commande confirmée",
+                     attempts: 3, timeoutMs: 15000);
 
               // 3. Historique « Mes commandes » : la commande y figure, liée au compte.
-              // Navigation améliorée : un clic peut être absorbé si le circuit peine
-              // (runner CI à froid) — cliquer puis vérifier l'effet, avec nouvel essai
-              // (même stratégie que le badge panier).
-              for (var attempt = 0; attempt < 4; attempt++)
-              {
-                     await page.ClickAsync("a[href='account']");
-                     try
-                     {
-                            await page.WaitForSelectorAsync("h1:has-text('Mon compte')",
-                                   new PageWaitForSelectorOptions { Timeout = 5000 });
-                            break;
-                     }
-                     catch (TimeoutException) when (attempt < 3) { }
-              }
-              for (var attempt = 0; attempt < 4; attempt++)
-              {
-                     await page.ClickAsync("a[href='/account/orders']");
-                     try
-                     {
-                            await page.WaitForSelectorAsync("h1:has-text('Mes commandes')",
-                                   new PageWaitForSelectorOptions { Timeout = 5000 });
-                            break;
-                     }
-                     catch (TimeoutException) when (attempt < 3) { }
-              }
+              await E2eNavigation.ClickUntilAsync(page, "a[href='account']", "h1:has-text('Mon compte')");
+              await E2eNavigation.ClickUntilAsync(page, "a[href='/account/orders']", "h1:has-text('Mes commandes')");
               var href = await page.GetAttributeAsync("ul li a", "href");
               Assert.NotNull(href);
 

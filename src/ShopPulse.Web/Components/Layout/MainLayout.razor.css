@@ -79,6 +79,7 @@ h1:focus { outline: none; }
 /* ---- Navigation principale ---- */
 .main-nav {
     display: flex;
+    flex-wrap: wrap;   /* mobile : les entrées passent à la ligne au lieu d'être rognées */
     gap: 0.25rem;
     padding: 0 1.25rem;
     background: var(--sp-color-surface);

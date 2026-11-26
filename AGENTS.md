@@ -88,7 +88,12 @@ sur la confirmation de commande — référence + montant dans le message pré-r
 molécule `WhatsAppCta` — `docs/31`), **tunnel de commande pro** (layout 2 colonnes
 façon joutech : étapes numérotées, carte « Votre commande » sticky — aperçu aux
 règles serveur avant la commande, valeurs persistées après ; sélecteurs E2E
-préservés ; piège Razor `@(x).ToString()` = texte littéral — `docs/32`).
+préservés ; piège Razor `@(x).ToString()` = texte littéral — `docs/32`),
+**responsive mobile** (audit mesuré à 375 px : tables admin dans des conteneurs
+`.table-scroll` accessibles — role=region, tabindex, jamais display:block ; lignes
+de panier et nav en flex-wrap ; test E2E permanent « zéro défilement horizontal »
+sur 375 px ; piège : --build Docker peut servir un vieux CSS — vérifier DANS le
+conteneur, rebuild --no-cache — `docs/33`).
 
 Évolutions possibles (non faites) : alertes métier (stock bas, ancienneté du
 dernier dump), backend de traces persistant, sauvegarde externalisée (règle 3-2-1),
@@ -137,7 +142,7 @@ tests/
   ShopPulse.E2E/                 # Playwright : checkout, compte, admin, refresh
                                  # token (4 tests + utilitaire Screenshots)
   ShopPulse.A11y/                # axe-core : 5 pages × fr/en/ar (RTL inclus)
-docs/                    # Chapitres 00 à 32 (un par étape), adr/, manuscrit/, images/
+docs/                    # Chapitres 00 à 33 (un par étape), adr/, manuscrit/, images/
 Livre/                   # Chapitres illustrés du livre + PDF final
 docker/keycloak/         # realm-shoppulse.json importé au démarrage
 docker/postgres/         # backup.sh (sauvegardes périodiques, service « backup »)

@@ -58,25 +58,27 @@ public class CheckoutE2eTests : IAsyncLifetime
               }
 
               // Navigation améliorée (liens internes) : même circuit → le panier survit.
-              await page.ClickAsync("a[href='/cart']");
-              await page.WaitForSelectorAsync("h1");
-              await page.ClickAsync("nav a[href='checkout']");   // lien du menu (le panier a aussi un CTA)
-              await page.WaitForSelectorAsync("text=article(s)");
+              await E2eNavigation.ClickUntilAsync(page, "a[href='/cart']", "h1");
+              // lien du menu (le panier a aussi un CTA)
+              await E2eNavigation.ClickUntilAsync(page, "nav a[href='checkout']", "text=article(s)");
 
-              await page.ClickAsync("button:has-text('Suivant')");
+              await E2eNavigation.ClickUntilAsync(page, "button:has-text('Suivant')", "#fn");
               await page.FillAsync("#fn", "Test E2E");
               await page.FillAsync("#em", "e2e@example.fr");
               await page.FillAsync("#ad", "1 rue du Test");
               await page.FillAsync("#pc", "69001");
-              await page.ClickAsync("button:has-text('Continuer')");
+              await E2eNavigation.ClickUntilAsync(page,
+                     "button:has-text('Continuer')", "button:has-text('Payer')");
 
-              // « Payer » crée la commande puis ouvre la session : en dev (sans clés
-              // Stripe), le simulateur affiche un bouton de confirmation dédié.
-              await page.ClickAsync("button:has-text('Payer')");
-              await page.ClickAsync("button:has-text('Simuler le paiement')",
-                     new PageClickOptions { Timeout = 15000 });
-              await page.WaitForSelectorAsync("text=Commande confirmée",
-                     new PageWaitForSelectorOptions { Timeout = 15000 });
+              // « Payer » crée la commande (idempotente — la clé est stable pendant les
+              // reprises) puis ouvre la session : en dev (sans clés Stripe), le simulateur
+              // affiche un bouton de confirmation dédié. Clics robustifiés (E2eNavigation).
+              await E2eNavigation.ClickUntilAsync(page,
+                     "button:has-text('Payer')", "button:has-text('Simuler le paiement')",
+                     attempts: 3, timeoutMs: 15000);
+              await E2eNavigation.ClickUntilAsync(page,
+                     "button:has-text('Simuler le paiement')", "text=Commande confirmée",
+                     attempts: 3, timeoutMs: 15000);
 
               // CTA WhatsApp de la confirmation (docs/31) : le message pré-rempli porte
               // la référence de la commande — lien wa.me avec le numéro configuré.
