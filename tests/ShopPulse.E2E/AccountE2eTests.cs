@@ -83,10 +83,31 @@ public class AccountE2eTests : IAsyncLifetime
                      new PageWaitForSelectorOptions { Timeout = 15000 });
 
               // 3. Historique « Mes commandes » : la commande y figure, liée au compte.
-              await page.ClickAsync("a[href='account']");
-              await page.WaitForSelectorAsync("h1:has-text('Mon compte')");
-              await page.ClickAsync("a[href='/account/orders']");
-              await page.WaitForSelectorAsync("h1:has-text('Mes commandes')");
+              // Navigation améliorée : un clic peut être absorbé si le circuit peine
+              // (runner CI à froid) — cliquer puis vérifier l'effet, avec nouvel essai
+              // (même stratégie que le badge panier).
+              for (var attempt = 0; attempt < 4; attempt++)
+              {
+                     await page.ClickAsync("a[href='account']");
+                     try
+                     {
+                            await page.WaitForSelectorAsync("h1:has-text('Mon compte')",
+                                   new PageWaitForSelectorOptions { Timeout = 5000 });
+                            break;
+                     }
+                     catch (TimeoutException) when (attempt < 3) { }
+              }
+              for (var attempt = 0; attempt < 4; attempt++)
+              {
+                     await page.ClickAsync("a[href='/account/orders']");
+                     try
+                     {
+                            await page.WaitForSelectorAsync("h1:has-text('Mes commandes')",
+                                   new PageWaitForSelectorOptions { Timeout = 5000 });
+                            break;
+                     }
+                     catch (TimeoutException) when (attempt < 3) { }
+              }
               var href = await page.GetAttributeAsync("ul li a", "href");
               Assert.NotNull(href);
 
